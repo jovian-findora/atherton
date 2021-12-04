@@ -1,0 +1,55 @@
+{
+  "name": "atherton-contracts",
+  "version": "1.0.0",
+  "description": "Smart Contracts for Atherton Finance",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.4.0"
+  },
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.3",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "@openzeppelin/hardhat-upgrades": "^1.12.0",
+    "@openzeppelin/test-helpers": "^0.5.15",
+    "@openzeppelin/truffle-upgrades": "^1.11.0",
+    "@typechain/ethers-v5": "^8.0.5",
+    "@typechain/hardhat": "^3.0.0",
+    "@types/chai": "^4.2.22",
+    "@types/mocha": "^9.0.0",
+    "@types/node": "^16.11.11",
+    "chai": "^4.3.4",
+    "ethereum-waffle": "^3.4.0",
+    "ethers": "^5.5.2",
+    "hardhat": "^2.7.0",
+    "prettier": "^2.5.0",
+    "prettier-plugin-solidity": "^1.0.0-beta.19",
+    "solc": "^0.8.10",
+    "solhint": "^3.3.6",
+    "solhint-plugin-prettier": "0.0.5",
+    "truffle": "^5.4.23",
+    "ts-node": "^10.4.0",
+    "typechain": "^6.0.5",
+    "typescript": "^4.5.2"
+  },
+  "scripts": {
+    "test": "npx hardhat test",
+    "hardhat-compile": "npx hardhat compile --force",
+    "truffle-compile": "rm -rf build; truffle compile --all;",
+    "typechain-compile": "rm -rf typechain; typechain --target ethers-v5 --out-dir typechain build/contracts/**/*.json",
+    "compile-all": "npm run hardhat-compile; npm run truffle-compile; npm run typechain-compile;",
+    "clean": "npx hardhat clean",
+    "sample-deploy-all": "npx hardhat run scripts/deployAll.ts",
+    "lint:sol": "solhint -f table contracts/**/*.sol"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jovian-findora/atherton.git"
+  },
+  "author": "Jovian",
+  "bugs": {
+    "url": "https://github.com/jovian-findora/atherton/issues"
+  },
+  "homepage": "https://github.com/jovian-findora/atherton#readme"
+}

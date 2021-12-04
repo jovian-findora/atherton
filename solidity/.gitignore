@@ -1,0 +1,6 @@
+node_modules/
+artifacts/
+cache/
+build/
+typechain/
+# .hardhat.secrets.json
