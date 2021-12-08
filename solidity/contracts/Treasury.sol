@@ -7,486 +7,437 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./util/ERC20Mintable.sol";
 import "./AthertonModels.sol";
+import "./lp/LPInterface.sol";
 
-// TODO-hightlight :: main logic
+
 
 contract AthertonTreasury is Ownable {
 
     using SafeMath for uint;
     using SafeERC20 for IERC20;
 
-    event Deposit( address indexed token, uint amount, uint value );
-    event Withdrawal( address indexed token, uint amount, uint value );
-    event CreateDebt( address indexed debtor, address indexed token, uint amount, uint value );
-    event RepayDebt( address indexed debtor, address indexed token, uint amount, uint value );
-    event ReservesManaged( address indexed token, uint amount );
-    event ReservesUpdated( uint indexed totalReserves );
-    event ReservesAudited( uint indexed totalReserves );
-    event RewardsMinted( address indexed caller, address indexed recipient, uint amount );
-    event ChangeQueued( MANAGING indexed managing, address queued );
-    event ChangeActivated( MANAGING indexed managing, address activated, bool result );
-    event IncurUnsecured( address indexed token, address indexed borrower, uint amount, uint value, uint balance );
-    event RepayUnsecured( address indexed token, address indexed borrower, uint amount, uint value, uint balance );
+    modifier onlyAuthority() { require( isRecordAuthority[msg.sender], "Not authorized" ); _; }
+    modifier onlyDirectDepositor() { require( isDirectDepositor[ msg.sender ], "Not an authorized depositor" ); _; }
+    modifier isAccepted(address _token) {
+        require( isStableToken[ _token ] || isFloatingToken[ _token ] || isLpToken[ _token ], "Not accepted" ); _;
+    }
+    modifier fromStaking() { require( isStakingContract[ msg.sender ], "Not from a staking contract" ); _; }
+    modifier isStaker(address _stakingContract, address _account) {
+        require( isStakingContract[ _stakingContract ], "Not a staking contract" );
+        require( IStaking(_stakingContract).accountExists(_account), "Not a staker on this staking contract" );
+        _;
+    }
 
-    enum MANAGING { RESERVEDEPOSITOR, RESERVESPENDER, RESERVETOKEN, RESERVEMANAGER, LIQUIDITYDEPOSITOR, LIQUIDITYTOKEN, LIQUIDITYMANAGER, DEBTOR, REWARDMANAGER, SATHER }
+    struct TreasuryOwnedErc20 {
+        address token;
+        uint balance;
+        uint value;
+    }
+
+    struct TreasuryOwnedErc721 {
+        address token;
+        uint value;
+    }
+
+    event StakingContractUpdated( address indexed stakingContract,  bool value );
+    event AthertonProfit( address indexed token, uint amount, uint usdValue, uint atherAmount, string details);
+    event AthertonLoss( address indexed token, uint amount, uint usdValue, uint atherAmount, string details);
+    event DividendPaid( address indexed recipient, uint atherAmount, uint usdValue);
+    event DirectDeposit( address indexed token, uint amount, uint usdValue, uint atherAmount );
+    event BondCalulatorChange (address indexed token, address calulator);
+    event ReservesUpdated( uint indexed totalReserves, TreasuryOwnedErc20[] );
+    event ReservesUpdatedErc721( uint indexed totalReserves, address indexed collectionAddress, uint tokenId, bool added, uint estValue);
+    event AuthorityChange( address target, bool value);
+    event DirectDepositorChange( address target, bool value);
+    event IncurUnsecured( address indexed token, address indexed borrower, uint amount, uint balance );
+    event RepayUnsecured( address indexed token, address indexed borrower, uint amount, uint balance );
+    event IncurUnsecuredUSD( address indexed token, address indexed borrower, uint amount, uint balance );
+    event RepayUnsecuredUSD( address indexed token, address indexed borrower, uint amount, uint balance );
 
     address public immutable ATHER;
-    uint public immutable blocksNeededForQueue;
+    address public immutable ATHERUSD;
+    address public immutable SATHER;
 
-    address[] public reserveTokens; // Push only, beware false-positives.
-    mapping( address => bool ) public isReserveToken;
-    mapping( address => uint ) public reserveTokenQueue; // Delays changes to mapping.
+    struct TreasuryData {
+        uint256 totalReserves; // value of all assets
+        uint256 totalReservesHard; // Risk-free value of all assets
+        uint256 totalReservesSoft; // Risk-free value of all assets
+        uint totalProfit;
+        uint totalProfitHard;
+        uint totalProfitSoft;
+        uint totalLoss;
+        uint totalLossHard;
+        uint totalLossSoft;
+        uint256 totalUnsecured; // Total unsecured ATHER (very highly risky)
+        uint256 totalUnsecuredUSD; // Total unsecured ATHERUSD (very highly risky)
+    }
+    TreasuryData data;
 
-    address[] public reserveDepositors; // Push only, beware false-positives. Only for viewing.
-    mapping( address => bool ) public isReserveDepositor;
-    mapping( address => uint ) public reserveDepositorQueue; // Delays changes to mapping.
+    struct TreasuryController {
+        uint32 reserveUpdateLast;
+        uint32 reserveUpdateInterval;
+        uint8 directDepositPublic;
+    }
+    TreasuryController control;
 
-    address[] public reserveSpenders; // Push only, beware false-positives. Only for viewing.
-    mapping( address => bool ) public isReserveSpender;
-    mapping( address => uint ) public reserveSpenderQueue; // Delays changes to mapping.
+    TreasuryOwnedErc20[] public erc20Assets;
+    mapping( address => TreasuryOwnedErc721 ) public erc721Assets; // collectionAddress => tokenData
 
-    address[] public liquidityTokens; // Push only, beware false-positives.
-    mapping( address => bool ) public isLiquidityToken;
-    mapping( address => uint ) public LiquidityTokenQueue; // Delays changes to mapping.
+    mapping( address => bool ) public isStableToken; // Stable USD pegged
+    mapping( address => bool ) public isFloatingToken; // Floating
+    mapping( address => bool ) public isLpToken; // mostly Floating/Stable LP Token (e.g. wETH/USDT)
+    mapping( address => bool ) public isComplexLpToken;  // Floating/Floating LP Token (e.g. wETH/wBTC)
 
-    address[] public liquidityDepositors; // Push only, beware false-positives. Only for viewing.
-    mapping( address => bool ) public isLiquidityDepositor;
-    mapping( address => uint ) public LiquidityDepositorQueue; // Delays changes to mapping.
+    mapping( address => bool ) public isStakingContract;
+    mapping( address => bool ) public isBondingContract;
 
-    mapping( address => address ) public bondCalculator; // bond calculator for liquidity token
-
-    address[] public reserveManagers; // Push only, beware false-positives. Only for viewing.
-    mapping( address => bool ) public isReserveManager;
-    mapping( address => uint ) public ReserveManagerQueue; // Delays changes to mapping.
-
-    address[] public liquidityManagers; // Push only, beware false-positives. Only for viewing.
-    mapping( address => bool ) public isLiquidityManager;
-    mapping( address => uint ) public LiquidityManagerQueue; // Delays changes to mapping.
-
-    address[] public debtors; // Push only, beware false-positives. Only for viewing.
-    mapping( address => bool ) public isDebtor;
-    mapping( address => uint ) public debtorQueue; // Delays changes to mapping.
-    mapping( address => uint ) public debtorBalance;
-
-    address[] public rewardManagers; // Push only, beware false-positives. Only for viewing.
-    mapping( address => bool ) public isRewardManager;
-    mapping( address => uint ) public rewardManagerQueue; // Delays changes to mapping.
+    mapping( address => bool ) public isDirectDepositor;
+    mapping( address => bool ) public isRecordAuthority; // Able to modify ATHER/SATHER circulation
 
     mapping( address => uint ) public unsecuredLoans; // No-collateral loans (very highly risky)
+    mapping( address => uint ) public unsecuredLoansUSD; // No-collateral USD loans (very highly risky)
 
-    address public sATHER;
-    address public DAO; // governace controller
-    uint public sATHERQueue; // Delays change to sATHER address
-    
-    uint256 public totalReserves; // Risk-free value of all assets
-    uint256 public totalUnsecured; // Total unsecured ATHERS (very highly risky)
-    uint256 public totalDebt;
+    struct TokenEvaluator { address addr; address pair; }
+    mapping( address => TokenEvaluator ) public evaluator; // value calculator for floating & lp tokens
+
+    struct ProfitShare { address addr; uint8 kind; uint16 percent; } // kind (0=staking, 1=bonding)
+    mapping( address => ProfitShare ) public profitShare;
+
+    address[] stableTokens;
+    address[] floatingTokens;
+    address[] lpTokens;
+    address[] stakingContracts;
+    address[] bondingContracts;
 
     constructor (
-        address _DAO,
         address _ATHER,
-        uint _blocksNeededForQueue
+        address _ATHERUSD,
+        address _SATHER
     ) {
-        require( _DAO != address(0) );
-        DAO = _DAO;
-
         require( _ATHER != address(0) );
         ATHER = _ATHER;
+        require( _ATHERUSD != address(0) );
+        ATHERUSD = _ATHERUSD;
+        require( _SATHER != address(0) );
+        SATHER = _SATHER;
 
-        blocksNeededForQueue = _blocksNeededForQueue;
+        isRecordAuthority[address(this)] = true;
+        isRecordAuthority[msg.sender] = true;
+        isDirectDepositor[msg.sender] = true;
+
+        control = TreasuryController({
+            reserveUpdateLast: 0,
+            reserveUpdateInterval: 60, // every 30 blocks (or by owner)
+            directDepositPublic: 0
+        });
     }
 
     /**
         @notice allow approved address to deposit an asset for ATHER
-        @param _amount uint
         @param _token address
-        @param _profit uint
-        @return send_ uint
+        @param _amount uint
      */
-    function deposit( uint _amount, address _token, uint _profit ) external returns ( uint send_ ) {
-        require( isReserveToken[ _token ] || isLiquidityToken[ _token ], "Not accepted" );
+    function deposit( address _token, uint _amount ) external isAccepted(_token) onlyDirectDepositor() returns ( uint ) {
         IERC20( _token ).safeTransferFrom( msg.sender, address(this), _amount );
-
-        if ( isReserveToken[ _token ] ) {
-            require( isReserveDepositor[ msg.sender ], "Not approved" );
-        } else {
-            require( isLiquidityDepositor[ msg.sender ], "Not approved" );
+        uint tokenUsdValue = valueOfToken( _token, _amount );
+        uint atherMatched = atherValueOf( _token, _amount );
+        data.totalReserves = data.totalReserves.add( tokenUsdValue );
+        emit DirectDeposit( _token, _amount, tokenUsdValue, atherMatched );
+        recordProfit( msg.sender, atherMatched, "direct deposit" );
+        return atherMatched;
+    }
+    function recordProfit( address _token, uint _amount, string memory _details) public onlyAuthority() {
+        uint tokenUsdValue = valueOfToken( _token, _amount );
+        uint atherAmount = atherValueOf( _token, _amount );
+        IERC20Mintable( ATHER ).mint( address(this), atherAmount );
+        data.totalProfit = data.totalProfit.add(tokenUsdValue);
+        if (isStableToken[_token]) { data.totalProfitHard = data.totalProfitHard.add(tokenUsdValue); }
+        else { data.totalProfitSoft = data.totalProfitSoft.add(tokenUsdValue); }
+        emit AthertonProfit( _token, _amount, tokenUsdValue, atherAmount, _details);
+        bool excludeTreasuryHoldings = true;
+        payDividends( atherAmount, excludeTreasuryHoldings );
+    }
+    function recordLoss( address _token, uint _amount, string memory _details) public onlyAuthority() {
+        uint tokenUsdValue = valueOfToken( _token, _amount );
+        uint atherValue = atherValueOf( _token, _amount );
+        IERC20Mintable( ATHER ).burnFrom( address(this), atherValue );
+        data.totalLoss = data.totalLoss.sub(tokenUsdValue);
+        if (isStableToken[_token]) { data.totalLossHard = data.totalLossHard.add(tokenUsdValue); }
+        else { data.totalLossSoft = data.totalLossSoft.add(tokenUsdValue); }
+        emit AthertonLoss( _token, _amount, tokenUsdValue, atherValue, _details);
+    }
+    function payDividends( uint _atherAmount, bool _excludeTreasuryHoldings ) public onlyAuthority() {
+        // Denominator = TreasuryOwndAther + StakingOwned + BondOwned
+        uint totalDividendable = _excludeTreasuryHoldings ? 0 : ERC20( ATHER ).balanceOf(address(this));
+        for( uint i = 0; i < stakingContracts.length; i++ ) {
+            if ( ! isStakingContract[ stakingContracts[ i ] ] ) { continue; }
+            totalDividendable.add( ERC20( ATHER ).balanceOf( stakingContracts[ i ] ) );
         }
-
-        uint value = valueOfToken(_token, _amount);
-        // mint ATHER needed and store amount of rewards for distribution
-        send_ = value.sub( _profit );
-        IERC20Mintable( ATHER ).mint( msg.sender, send_ );
-
-        totalReserves = totalReserves.add( value );
-        emit ReservesUpdated( totalReserves );
-
-        emit Deposit( _token, _amount, value );
-    }
-
-    /**
-        @notice allow approved address to burn ATHER for reserves
-        @param _amount uint
-        @param _token address
-     */
-    function withdraw( uint _amount, address _token ) external {
-        require( isReserveToken[ _token ], "Not accepted" ); // Only reserves can be used for redemptions
-        require( isReserveSpender[ msg.sender ] == true, "Not approved" );
-
-        uint value = valueOfToken( _token, _amount );
-        IATHERERC20( ATHER ).burnFrom( msg.sender, value );
-
-        totalReserves = totalReserves.sub( value );
-        emit ReservesUpdated( totalReserves );
-
-        IERC20( _token ).safeTransfer( msg.sender, _amount );
-
-        emit Withdrawal( _token, _amount, value );
-    }
-
-    /**
-        @notice allow approved address to borrow reserves
-        @param _amount uint
-        @param _token address
-     */
-    function incurDebt( uint _amount, address _token ) external {
-        require( isDebtor[ msg.sender ], "Not approved" );
-        require( isReserveToken[ _token ], "Not accepted" );
-
-        uint value = valueOfToken( _token, _amount );
-
-        uint maximumDebt = IERC20( sATHER ).balanceOf( msg.sender ); // Can only borrow against sATHER held
-        uint availableDebt = maximumDebt.sub( debtorBalance[ msg.sender ] );
-        require( value <= availableDebt, "Exceeds debt limit" );
-
-        debtorBalance[ msg.sender ] = debtorBalance[ msg.sender ].add( value );
-        totalDebt = totalDebt.add( value );
-
-        totalReserves = totalReserves.sub( value );
-        emit ReservesUpdated( totalReserves );
-
-        IERC20( _token ).transfer( msg.sender, _amount );
-        
-        emit CreateDebt( msg.sender, _token, _amount, value );
-    }
-
-    /**
-        @notice allow approved address to repay borrowed reserves with reserves
-        @param _amount uint
-        @param _token address
-     */
-    function repayDebtWithReserve( uint _amount, address _token ) external {
-        require( isDebtor[ msg.sender ], "Not approved" );
-        require( isReserveToken[ _token ], "Not accepted" );
-
-        IERC20( _token ).safeTransferFrom( msg.sender, address(this), _amount );
-
-        uint value = valueOfToken( _token, _amount );
-        debtorBalance[ msg.sender ] = debtorBalance[ msg.sender ].sub( value );
-        totalDebt = totalDebt.sub( value );
-
-        totalReserves = totalReserves.add( value );
-        emit ReservesUpdated( totalReserves );
-
-        emit RepayDebt( msg.sender, _token, _amount, value );
-    }
-
-    /**
-        @notice allow approved address to repay borrowed reserves with ATHER
-        @param _amount uint
-     */
-    function repayDebtWithATHER( uint _amount ) external {
-        require( isDebtor[ msg.sender ], "Not approved" );
-
-        IATHERERC20( ATHER ).burnFrom( msg.sender, _amount );
-
-        debtorBalance[ msg.sender ] = debtorBalance[ msg.sender ].sub( _amount );
-        totalDebt = totalDebt.sub( _amount );
-
-        emit RepayDebt( msg.sender, ATHER, _amount, _amount );
-    }
-
-    /**
-        @notice allow approved address to withdraw assets
-        @param _token address
-        @param _amount uint
-     */
-    function manage( address _token, uint _amount ) external {
-        if( isLiquidityToken[ _token ] ) {
-            require( isLiquidityManager[ msg.sender ], "Not approved" );
-        } else {
-            require( isReserveManager[ msg.sender ], "Not approved" );
+        uint perAtherDistribute = _atherAmount.mul(1e18).div(totalDividendable); // bump 1e18 for precision
+        for( uint i = 0; i < stakingContracts.length; i++ ) {
+            if ( ! isStakingContract[ stakingContracts[ i ] ] ) { continue; }
+            uint atherBalance = ERC20( ATHER ).balanceOf( stakingContracts[ i ] );
+            uint dividend = atherBalance.mul(perAtherDistribute).div(1e18);
+            IERC20( ATHER ).transfer(stakingContracts[ i ], dividend );
+            IStaking( stakingContracts[ i ] ).updateDistribute( dividend, true );
         }
-
-        uint value = valueOfToken(_token, _amount);
-        require( value <= excessReserves(), "Insufficient reserves" );
-
-        totalReserves = totalReserves.sub( value );
-        emit ReservesUpdated( totalReserves );
-
-        IERC20( _token ).safeTransfer( msg.sender, _amount );
-
-        emit ReservesManaged( _token, _amount );
+        // TODO: for bonds   
     }
 
-    /**
-        @notice send epoch reward to staking contract
-     */
-    function mintRewards( address _recipient, uint _amount ) external {
-        require( isRewardManager[ msg.sender ], "Not approved" );
-        require( _amount <= excessReserves(), "Insufficient reserves" );
-
-        IERC20Mintable( ATHER ).mint( _recipient, _amount );
-
-        emit RewardsMinted( msg.sender, _recipient, _amount );
+    // Staking
+    function stake( address _stakingContract, uint _amount, uint16 _autoRestake ) external {
+        require( isStakingContract[_stakingContract], "Not a staking contract");
+        IStaking(_stakingContract).setAutoRestake( msg.sender, _autoRestake );
+        IStaking(_stakingContract).epochCheck();
+        IStaking(_stakingContract).rebaseAccount( msg.sender );
+        IERC20( ATHER ).safeTransferFrom( msg.sender, _stakingContract, _amount );
+        IERC20Mintable( SATHER ).mint( msg.sender, _amount );
+        IStaking(_stakingContract).stakeEffect( msg.sender, _amount );
+    }
+    function unstake( address _stakingContract, uint _amount ) external isStaker( _stakingContract, msg.sender ) {
+        IStaking(_stakingContract).epochCheck();
+        IStaking(_stakingContract).rebaseAccount( msg.sender );
+        IERC20( ATHER ).safeTransferFrom( _stakingContract, msg.sender, _amount );
+        IERC20Mintable( SATHER ).burnFrom( msg.sender, _amount );
+        IStaking(_stakingContract).unstakeEffect( msg.sender, _amount );
+    }
+    function setAutoRestake( address _stakingContract, uint16 _autoRestake ) external isStaker( _stakingContract, msg.sender ) {
+        IStaking(_stakingContract).setAutoRestake( msg.sender, _autoRestake );
+    }
+    function rebaseAccount( address _stakingContract, address _account, uint _amount, bool _isPositive )
+      public fromStaking() isStaker( _stakingContract, _account ) {
+        if (_isPositive) {
+            uint restakePercent = IStaking( _stakingContract ).accountRestakePercent( _account );
+            if ( restakePercent > 0 ) {
+                uint restakeAmount = _amount.mul( restakePercent ).div( 1e4 );
+                uint payoutAmount = _amount.sub( restakeAmount );
+                IERC20( ATHER ).safeTransferFrom( _stakingContract, _account, payoutAmount );
+                IERC20Mintable( SATHER ).mint( _account, restakeAmount );
+            } else {
+                IERC20( ATHER ).safeTransferFrom( _stakingContract, _account, _amount );
+            }
+        } else {
+            IERC20( ATHER ).safeTransferFrom( _stakingContract, address(this), _amount );
+            IERC20Mintable( SATHER ).burnFrom( _account, _amount );
+        }
     }
 
-    /**
-        @notice Unsecured minting ATHER for hedgefunds, DAO must approve
-     */
-    function incurUnsecured( address _borrower, uint _amount ) external {
-        require( msg.sender == DAO );
+    // Liquidity Providing
+    // 0 : UNISWAP_V2
+    enum LPType {
+        UNISWAP_V2
+    }
+
+
+
+    function incurUnsecured( address _borrower, uint _amount ) external onlyOwner() {
         IERC20Mintable( ATHER ).mint( _borrower, _amount );
-        totalUnsecured = totalUnsecured.add( _amount );
+        data.totalUnsecured = data.totalUnsecured.add( _amount );
         unsecuredLoans[_borrower] = unsecuredLoans[_borrower].add(_amount);
 
-        emit IncurUnsecured( ATHER, _borrower, _amount, _amount, unsecuredLoans[_borrower]);
+        emit IncurUnsecured( ATHER, _borrower, _amount, unsecuredLoans[_borrower]);
     }
-
-    /**
-        @notice Repay unsecured after hedgefunds make value from it
-     */
     function repayUnsecured( address _borrower, uint _amount ) external {
         require( unsecuredLoans[_borrower] >= _amount );
         IATHERERC20( ATHER ).burnFrom(_borrower, _amount);
-        totalUnsecured = totalUnsecured.sub( _amount );
+        data.totalUnsecured = data.totalUnsecured.sub( _amount );
         unsecuredLoans[_borrower] = unsecuredLoans[_borrower].sub(_amount);
-
-        emit RepayUnsecured( ATHER, _borrower, _amount, _amount, unsecuredLoans[_borrower]);
+        emit RepayUnsecured( ATHER, _borrower, _amount, unsecuredLoans[_borrower]);
     }
-
-    /**
-        @notice Repay on behalf of hedgefund that borrowed
-     */
     function repayUnsecuredOnBehalfOf( address _borrower, address _repayer, uint _amount ) external {
         require( unsecuredLoans[_borrower] >= _amount );
         IATHERERC20( ATHER ).burnFrom(_repayer, _amount);
-        totalUnsecured = totalUnsecured.sub( _amount );
+        data.totalUnsecured = data.totalUnsecured.sub( _amount );
         unsecuredLoans[_borrower] = unsecuredLoans[_borrower].sub(_amount);
-
-        emit RepayUnsecured( ATHER, _borrower, _amount, _amount, unsecuredLoans[_borrower]);
+        emit RepayUnsecured( ATHER, _borrower, _amount, unsecuredLoans[_borrower]);
+    }
+    function incurUnsecuredUSD( address _borrower, uint _amount ) external onlyOwner() {
+        IERC20Mintable( ATHERUSD ).mint( _borrower, _amount );
+        data.totalUnsecuredUSD = data.totalUnsecuredUSD.add( _amount );
+        unsecuredLoansUSD[_borrower] = unsecuredLoansUSD[_borrower].add(_amount);
+        emit IncurUnsecuredUSD( ATHERUSD, _borrower, _amount, unsecuredLoansUSD[_borrower]);
+    }
+    function repayUnsecuredUSD( address _borrower, uint _amount ) external {
+        require( unsecuredLoansUSD[_borrower] >= _amount );
+        IATHERERC20( ATHERUSD ).burnFrom(_borrower, _amount);
+        data.totalUnsecuredUSD = data.totalUnsecuredUSD.sub( _amount );
+        unsecuredLoansUSD[_borrower] = unsecuredLoansUSD[_borrower].sub(_amount);
+        emit RepayUnsecuredUSD( ATHERUSD, _borrower, _amount, unsecuredLoansUSD[_borrower]);
+    }
+    function repayUnsecuredUSDOnBehalfOf( address _borrower, address _repayer, uint _amount ) external {
+        require( unsecuredLoansUSD[_borrower] >= _amount );
+        IATHERERC20( ATHERUSD ).burnFrom(_repayer, _amount);
+        data.totalUnsecuredUSD = data.totalUnsecuredUSD.sub( _amount );
+        unsecuredLoansUSD[_borrower] = unsecuredLoansUSD[_borrower].sub(_amount);
+        emit RepayUnsecuredUSD( ATHERUSD, _borrower, _amount, unsecuredLoansUSD[_borrower]);
     }
 
-    /**
-        @notice returns excess reserves not backing tokens
-        @return uint
-     */
-    function excessReserves() public view returns ( uint ) {
-        return totalReserves.sub( IERC20( ATHER ).totalSupply().sub( totalDebt ) );
-    }
 
     /**
         @notice takes inventory of all tracked assets
         @notice always consolidate to recognized reserves before audit
      */
-    function auditReserves() external onlyOwner() {
+    function auditReserves() public {
+        if (block.number < control.reserveUpdateLast + control.reserveUpdateInterval) {
+            return;
+        }
+        control.reserveUpdateLast = uint32(block.number);
         uint reserves;
-        for( uint i = 0; i < reserveTokens.length; i++ ) {
-            reserves = reserves.add ( 
-                valueOfToken( reserveTokens[ i ], IERC20( reserveTokens[ i ] ).balanceOf( address(this) ) )
-            );
+        delete erc20Assets;
+        for( uint i = 0; i < stableTokens.length; i++ ) {
+            if (!isStableToken[stableTokens[ i ]]) { continue; }
+            uint balance = IERC20( stableTokens[ i ] ).balanceOf( address(this) );
+            uint value = valueOfToken( stableTokens[ i ], balance );
+            reserves = reserves.add(value);
+            erc20Assets.push(TreasuryOwnedErc20({
+                token: stableTokens[ i ],
+                balance: balance,
+                value: value
+            }));
         }
-        for( uint i = 0; i < liquidityTokens.length; i++ ) {
-            reserves = reserves.add (
-                valueOfToken( liquidityTokens[ i ], IERC20( liquidityTokens[ i ] ).balanceOf( address(this) ) )
-            );
+        for( uint i = 0; i < floatingTokens.length; i++ ) {
+            if (!isFloatingToken[floatingTokens[ i ]]) { continue; }
+            uint balance = IERC20( floatingTokens[ i ] ).balanceOf( address(this) );
+            uint value = valueOfToken( floatingTokens[ i ], balance );
+            reserves = reserves.add(value);
+            erc20Assets.push(TreasuryOwnedErc20({
+                token: floatingTokens[ i ],
+                balance: balance,
+                value: value
+            }));
         }
-        totalReserves = reserves;
-        emit ReservesUpdated( reserves );
-        emit ReservesAudited( reserves );
-    }
-
-    /**
-        @notice returns ATHER valuation of asset
-        @param _token address
-        @param _amount uint
-        @return value_ uint
-     */
-    function valueOfToken( address _token, uint _amount ) public view returns ( uint value_ ) {
-        if ( isReserveToken[ _token ] ) {
-            // 1:1 backing with reserve token (e.g. 1 ATHER = 1 USDT)
-            // convert amount to match ATHER decimals
-            value_ = _amount.mul( 10 ** ERC20( ATHER ).decimals() ).div( 10 ** ERC20( _token ).decimals() );
-        } else if ( isLiquidityToken[ _token ] ) {
-            value_ = IBondCalculator( bondCalculator[ _token ] ).valuation( _token, _amount );
+        for( uint i = 0; i < lpTokens.length; i++ ) {
+            if (!isLpToken[lpTokens[ i ]]) { continue; }
+            uint balance = IERC20( lpTokens[ i ] ).balanceOf( address(this) );
+            uint value = valueOfToken( lpTokens[ i ], balance );
+            reserves = reserves.add(value);
+            erc20Assets.push(TreasuryOwnedErc20({
+                token: lpTokens[ i ],
+                balance: balance,
+                value: value
+            }));
         }
-    }
-
-    /**
-        @notice queue address to change boolean in mapping
-        @param _managing MANAGING
-        @param _address address
-        @return bool
-     */
-    function queue( MANAGING _managing, address _address ) external onlyOwner() returns ( bool ) {
-        require( _address != address(0) );
-        if ( _managing == MANAGING.RESERVEDEPOSITOR ) { // 0
-            reserveDepositorQueue[ _address ] = block.number.add( blocksNeededForQueue );
-        } else if ( _managing == MANAGING.RESERVESPENDER ) { // 1
-            reserveSpenderQueue[ _address ] = block.number.add( blocksNeededForQueue );
-        } else if ( _managing == MANAGING.RESERVETOKEN ) { // 2
-            reserveTokenQueue[ _address ] = block.number.add( blocksNeededForQueue );
-        } else if ( _managing == MANAGING.RESERVEMANAGER ) { // 3
-            ReserveManagerQueue[ _address ] = block.number.add( blocksNeededForQueue.mul( 2 ) );
-        } else if ( _managing == MANAGING.LIQUIDITYDEPOSITOR ) { // 4
-            LiquidityDepositorQueue[ _address ] = block.number.add( blocksNeededForQueue );
-        } else if ( _managing == MANAGING.LIQUIDITYTOKEN ) { // 5
-            LiquidityTokenQueue[ _address ] = block.number.add( blocksNeededForQueue );
-        } else if ( _managing == MANAGING.LIQUIDITYMANAGER ) { // 6
-            LiquidityManagerQueue[ _address ] = block.number.add( blocksNeededForQueue.mul( 2 ) );
-        } else if ( _managing == MANAGING.DEBTOR ) { // 7
-            debtorQueue[ _address ] = block.number.add( blocksNeededForQueue );
-        } else if ( _managing == MANAGING.REWARDMANAGER ) { // 8
-            rewardManagerQueue[ _address ] = block.number.add( blocksNeededForQueue );
-        } else if ( _managing == MANAGING.SATHER ) { // 9
-            sATHERQueue = block.number.add( blocksNeededForQueue );
-        } else return false;
-
-        emit ChangeQueued( _managing, _address );
-        return true;
+        data.totalReserves = reserves;
+        if (msg.sender == owner()) { // only calls from owner emit the event to reduce polution
+            emit ReservesUpdated( reserves, erc20Assets );    
+        }
     }
 
     /**
         @notice verify queue then set boolean in mapping
-        @param _managing MANAGING
         @param _address address
-        @param _calculator address
-        @return bool
+        @param value bool
      */
-    function toggle( MANAGING _managing, address _address, address _calculator ) external onlyOwner() returns ( bool ) {
-        require( _address != address(0) );
-        bool result;
-        if ( _managing == MANAGING.RESERVEDEPOSITOR ) { // 0
-            if ( requirements( reserveDepositorQueue, isReserveDepositor, _address ) ) {
-                reserveDepositorQueue[ _address ] = 0;
-                if( !listContains( reserveDepositors, _address ) ) {
-                    reserveDepositors.push( _address );
-                }
+    function setAuthority( address _address, bool value ) external onlyOwner() {
+        isRecordAuthority[_address] = value;
+        emit AuthorityChange( _address, value );
+    }
+    function setDepositor( address _address, bool value ) external onlyOwner() {
+        isDirectDepositor[_address] = value;
+        emit DirectDepositorChange( _address, value );
+    }
+    function setStableToken(bool _value, address _token) external onlyOwner() {
+        require(ERC20( _token ).decimals() == 18, "treasury can only deal with ERC20 with 18 decimals");
+        if ( _value ) {
+            isStableToken[ _token ] = true;
+            if (!listContains(stableTokens, _token)) {
+                stableTokens.push(_token);
             }
-            result = !isReserveDepositor[ _address ];
-            isReserveDepositor[ _address ] = result;
-            
-        } else if ( _managing == MANAGING.RESERVESPENDER ) { // 1
-            if ( requirements( reserveSpenderQueue, isReserveSpender, _address ) ) {
-                reserveSpenderQueue[ _address ] = 0;
-                if( !listContains( reserveSpenders, _address ) ) {
-                    reserveSpenders.push( _address );
-                }
+        } else {
+            require(isStableToken[ _token ], "not a registered stable token");
+            isStableToken[ _token ] = false;
+        }
+    }
+    function setFloatingToken(bool _value, address _token, address _evaluator, address _groudingLpPair) external onlyOwner() {
+        require(ERC20( _token ).decimals() == 18, "treasury can only deal with ERC20 with 18 decimals");
+        if ( _value ) {
+            isFloatingToken[ _token ] = true;
+            evaluator[ _token ] = TokenEvaluator({
+                addr: _evaluator,
+                pair: _groudingLpPair
+            });
+            if (!listContains(floatingTokens, _token)) {
+                floatingTokens.push(_token);
             }
-            result = !isReserveSpender[ _address ];
-            isReserveSpender[ _address ] = result;
-
-        } else if ( _managing == MANAGING.RESERVETOKEN ) { // 2
-            if ( requirements( reserveTokenQueue, isReserveToken, _address ) ) {
-                reserveTokenQueue[ _address ] = 0;
-                if( !listContains( reserveTokens, _address ) ) {
-                    reserveTokens.push( _address );
-                }
+        } else {
+            require(isStableToken[ _token ], "not a registered floating token");
+            isFloatingToken[ _token ] = false;
+            delete evaluator[ _token ];
+        }
+    }
+    function setLpToken(bool _value, address _token, address _evaluator, address _groudingLpPair) external onlyOwner() {
+        require(ERC20( _token ).decimals() == 18, "treasury can only deal with ERC20 with 18 decimals");
+        if (_value) {
+            isLpToken[ _token ] = true;
+            isComplexLpToken[ _token ] = _groudingLpPair != address(0);
+            evaluator[ _token ] = TokenEvaluator({
+                addr: _evaluator,
+                pair: _groudingLpPair
+            });
+            if (!listContains(lpTokens, _token)) {
+                lpTokens.push(_token);
             }
-            result = !isReserveToken[ _address ];
-            isReserveToken[ _address ] = result;
+        } else {
+            require(isLpToken[ _token ], "not a registered LP token");
+            isLpToken[ _token ] = false;
+            isComplexLpToken[ _token ] = false;
+            delete evaluator[ _token ];
+        }
+    }
 
-        } else if ( _managing == MANAGING.RESERVEMANAGER ) { // 3
-            if ( requirements( ReserveManagerQueue, isReserveManager, _address ) ) {
-                reserveManagers.push( _address );
-                ReserveManagerQueue[ _address ] = 0;
-                if( !listContains( reserveManagers, _address ) ) {
-                    reserveManagers.push( _address );
-                }
+    function setStakingContract( bool _value, address stakingContract_ ) external onlyOwner() {
+        if (_value) {
+            require( !isStakingContract[stakingContract_], "already registered" );
+            isStakingContract[stakingContract_] = true;
+            if (!listContains(stakingContracts, stakingContract_)) {
+                stakingContracts.push(stakingContract_);
             }
-            result = !isReserveManager[ _address ];
-            isReserveManager[ _address ] = result;
-
-        } else if ( _managing == MANAGING.LIQUIDITYDEPOSITOR ) { // 4
-            if ( requirements( LiquidityDepositorQueue, isLiquidityDepositor, _address ) ) {
-                liquidityDepositors.push( _address );
-                LiquidityDepositorQueue[ _address ] = 0;
-                if( !listContains( liquidityDepositors, _address ) ) {
-                    liquidityDepositors.push( _address );
-                }
-            }
-            result = !isLiquidityDepositor[ _address ];
-            isLiquidityDepositor[ _address ] = result;
-
-        } else if ( _managing == MANAGING.LIQUIDITYTOKEN ) { // 5
-            if ( requirements( LiquidityTokenQueue, isLiquidityToken, _address ) ) {
-                LiquidityTokenQueue[ _address ] = 0;
-                if( !listContains( liquidityTokens, _address ) ) {
-                    liquidityTokens.push( _address );
-                }
-            }
-            result = !isLiquidityToken[ _address ];
-            isLiquidityToken[ _address ] = result;
-            bondCalculator[ _address ] = _calculator;
-
-        } else if ( _managing == MANAGING.LIQUIDITYMANAGER ) { // 6
-            if ( requirements( LiquidityManagerQueue, isLiquidityManager, _address ) ) {
-                LiquidityManagerQueue[ _address ] = 0;
-                if( !listContains( liquidityManagers, _address ) ) {
-                    liquidityManagers.push( _address );
-                }
-            }
-            result = !isLiquidityManager[ _address ];
-            isLiquidityManager[ _address ] = result;
-
-        } else if ( _managing == MANAGING.DEBTOR ) { // 7
-            if ( requirements( debtorQueue, isDebtor, _address ) ) {
-                debtorQueue[ _address ] = 0;
-                if( !listContains( debtors, _address ) ) {
-                    debtors.push( _address );
-                }
-            }
-            result = !isDebtor[ _address ];
-            isDebtor[ _address ] = result;
-
-        } else if ( _managing == MANAGING.REWARDMANAGER ) { // 8
-            if ( requirements( rewardManagerQueue, isRewardManager, _address ) ) {
-                rewardManagerQueue[ _address ] = 0;
-                if( !listContains( rewardManagers, _address ) ) {
-                    rewardManagers.push( _address );
-                }
-            }
-            result = !isRewardManager[ _address ];
-            isRewardManager[ _address ] = result;
-
-        } else if ( _managing == MANAGING.SATHER ) { // 9
-            sATHERQueue = 0;
-            sATHER = _address;
-            result = true;
-
-        } else return false;
-
-        emit ChangeActivated( _managing, _address, result );
-        return true;
+            isRecordAuthority[stakingContract_] = true;
+        } else {
+            require( isStakingContract[stakingContract_], "contract not found on registry" );
+            delete isStakingContract[stakingContract_];
+            isRecordAuthority[stakingContract_] = false;
+        }
+        emit StakingContractUpdated( stakingContract_, _value );
     }
 
     /**
-        @notice checks requirements and returns altered structs
-        @param queue_ mapping( address => uint )
-        @param status_ mapping( address => bool )
-        @param _address address
-        @return bool 
+        @notice returns all important treasury data
+        @return TreasuryData
      */
-    function requirements( 
-        mapping( address => uint ) storage queue_, 
-        mapping( address => bool ) storage status_, 
-        address _address 
-    ) internal view returns ( bool ) {
-        if ( !status_[ _address ] ) {
-            require( queue_[ _address ] != 0, "Must queue" );
-            require( queue_[ _address ] <= block.number, "Queue not expired" );
-            return true;
-        } return false;
+    function getTreasuryData() public view returns ( TreasuryData memory ) {
+        return data;
+    }
+
+    /**
+        @notice returns USD valuation of asset
+        @param _token address
+        @param _amount uint
+        @return value_ uint
+     */
+    function valueOfToken( address _token, uint _amount ) public view returns ( uint ) {
+        if ( isStableToken[ _token ] ) {
+            return _amount; // 1 USD = 1 USD
+        }
+        address groudingLpPair = evaluator[ _token ].pair;
+        if ( isFloatingToken[ _token ] ) {
+            return ITokenEvaluator( evaluator[ _token ].addr ).valuationFloating( _token, groudingLpPair, _amount );  
+        } else if ( isLpToken[ _token ] ) {
+            if ( isComplexLpToken[ _token ] ) {
+                return ITokenEvaluator( evaluator[ _token ].addr ).valuationComplexLpToken( _token, groudingLpPair, _amount );
+            } else {
+                return ITokenEvaluator( evaluator[ _token ].addr ).valuationLpToken( _token, _amount );
+            }
+        }
+        return 0;
+    }
+    function atherValueOf( address _token, uint _amount ) public view isAccepted(_token) returns ( uint ) {
+        uint tokenUsdValue = valueOfToken( _token, _amount );
+        return tokenUsdValue.mul( 1e18 ).div( valueOfToken( ATHER, 1e18 ) );
+    }
+
+    function getErc20Assets() public view returns (TreasuryOwnedErc20[] memory) {
+        return erc20Assets;
     }
 
     /**
@@ -502,11 +453,6 @@ contract AthertonTreasury is Ownable {
             }
         }
         return false;
-    }
-
-    /* ======= Governance Contingency ======= */
-    function setDao(address newDao) external onlyOwner() {
-        DAO = newDao;
     }
 
 }

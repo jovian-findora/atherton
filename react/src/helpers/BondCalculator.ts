@@ -7,7 +7,7 @@ import { AthertonBondCalculator } from "../typechain";
 
 export const getBondCalculator = (networkID: NetworkID, provider: StaticJsonRpcProvider) => {
   return new ethers.Contract(
-    addresses[networkID].BONDINGCALC_ADDRESS as string,
+    addresses[networkID].ATHER_EVAL_ADDRESS as string,
     BondCalcContractABI,
     provider,
   ) as AthertonBondCalculator;

@@ -246,6 +246,7 @@ export const Web3ContextProvider: React.FC<{ children: ReactElement }> = ({ chil
     _initListeners(rawProvider);
     const connectedProvider = new Web3Provider(rawProvider, "any");
     const chainId = await connectedProvider.getNetwork().then(network => network.chainId);
+    // console.log('currentChainId', chainId);
     const connectedAddress = await connectedProvider.getSigner().getAddress();
     const validNetwork = _checkNetwork(chainId);
     if (!validNetwork) {

@@ -130,13 +130,12 @@ function Stake() {
   const hasAllowance = useCallback(
     token => {
       if (token === "ather") return stakeAllowance > 0;
-      if (token === "sather") return unstakeAllowance > 0;
       return 0;
     },
-    [stakeAllowance, unstakeAllowance],
+    [stakeAllowance],
   );
 
-  const isAllowanceDataLoading = (stakeAllowance == null && view === 0) || (unstakeAllowance == null && view === 1);
+  const isAllowanceDataLoading = (stakeAllowance == null && view === 0);
 
   let modalButton: any[] = [];
 
@@ -267,7 +266,7 @@ function Stake() {
                     <Grid container className="stake-action-row">
                       <Grid item xs={12} sm={8} className="stake-grid-item">
                         {address && !isAllowanceDataLoading ? (
-                          (!hasAllowance("ather") && view === 0) || (!hasAllowance("sather") && view === 1) ? (
+                          (!hasAllowance("ather") && view === 0)? (
                             <Box className="help-text">
                               <Typography variant="body1" className="stake-note" color="textSecondary">
                                 {view === 0 ? (
@@ -349,7 +348,7 @@ function Stake() {
                           <Box m={-2}>
                             {isAllowanceDataLoading ? (
                               <Skeleton />
-                            ) : address && hasAllowance("sather") ? (
+                            ) : (
                               <Button
                                 className="stake-button"
                                 variant="contained"
@@ -360,18 +359,6 @@ function Stake() {
                                 }}
                               >
                                 {txnButtonText(pendingTransactions, "unstaking", t`Unstake ATHER`)}
-                              </Button>
-                            ) : (
-                              <Button
-                                className="stake-button"
-                                variant="contained"
-                                color="primary"
-                                disabled={isPendingTxn(pendingTransactions, "approve_unstaking")}
-                                onClick={() => {
-                                  onSeekApproval("sather");
-                                }}
-                              >
-                                {txnButtonText(pendingTransactions, "approve_unstaking", t`Approve`)}
                               </Button>
                             )}
                           </Box>
@@ -396,24 +383,6 @@ function Stake() {
                       </Typography>
                       <Typography variant="body1" id="user-staked-balance">
                         {isAppLoading ? <Skeleton width="80px" /> : <>{trimmedBalance} sATHER</>}
-                      </Typography>
-                    </div>
-
-                    <div className="data-row" style={{ paddingLeft: "10px" }}>
-                      <Typography variant="body2" color="textSecondary">
-                        <Trans>Single Staking</Trans>
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        {isAppLoading ? <Skeleton width="80px" /> : <>{trim(Number(satherBalance), 4)} sATHER</>}
-                      </Typography>
-                    </div>
-
-                    <div className="data-row" style={{ paddingLeft: "10px" }}>
-                      <Typography variant="body2" color="textSecondary">
-                        <Trans>Wrapped Balance</Trans>
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        {isAppLoading ? <Skeleton width="80px" /> : <>{trim(Number(wsatherBalance), 4)} wsATHER</>}
                       </Typography>
                     </div>
 

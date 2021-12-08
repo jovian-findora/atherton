@@ -2,14 +2,13 @@ import { BigNumber, BigNumberish, ethers } from "ethers";
 import { addresses } from "../constants";
 import { abi as ierc20Abi } from "../abi/IERC20.json";
 import { abi as sATHER } from "../abi/sAtherton.json";
-import { abi as wsATHER } from "../abi/wsATHER.json";
 
 import { setAll } from "../helpers";
 
 import { createAsyncThunk, createSelector, createSlice } from "@reduxjs/toolkit";
 import { RootState } from "src/store";
 import { IBaseAddressAsyncThunk, ICalcUserBondDetailsAsyncThunk } from "./interfaces";
-import { IERC20, SAtherton, WsATHER } from "src/typechain";
+import { IERC20, SAtherton } from "src/typechain";
 
 interface IUserBalances {
   balances: {
@@ -24,17 +23,20 @@ export const getBalances = createAsyncThunk(
   async ({ address, networkID, provider }: IBaseAddressAsyncThunk) => {
     const atherContract = new ethers.Contract(addresses[networkID].ATHER_ADDRESS as string, ierc20Abi, provider) as IERC20;
     const atherBalance = await atherContract.balanceOf(address);
+    const atherUsdContract = new ethers.Contract(addresses[networkID].ATHER_USD_ADDRESS as string, ierc20Abi, provider) as IERC20;
+    const atherUsdBalance = await atherUsdContract.balanceOf(address);
     const satherContract = new ethers.Contract(addresses[networkID].SATHER_ADDRESS as string, ierc20Abi, provider) as IERC20;
     const satherBalance = await satherContract.balanceOf(address);
-    const wsatherContract = new ethers.Contract(addresses[networkID].WSATHER_ADDRESS as string, wsATHER, provider) as WsATHER;
-    const wsatherBalance = await wsatherContract.balanceOf(address);
+    // const wsatherContract = new ethers.Contract(addresses[networkID].WSATHER_ADDRESS as string, wsATHER, provider) as WsATHER;
+    // const wsatherBalance = await wsatherContract.balanceOf(address);
     // NOTE (appleseed): wsatherAsSather is wsATHER given as a quantity of sATHER
 
     return {
       balances: {
-        ather: ethers.utils.formatUnits(atherBalance, "gwei"),
-        sather: ethers.utils.formatUnits(satherBalance, "gwei"),
-        wsather: ethers.utils.formatEther(wsatherBalance),
+        ather: ethers.utils.formatEther(atherBalance),
+        atherUsd: ethers.utils.formatEther(atherUsdBalance),
+        sather: ethers.utils.formatEther(satherBalance),
+        // wsather: ethers.utils.formatEther(wsatherBalance),
       },
     };
   },
@@ -55,15 +57,15 @@ export const loadAccountDetails = createAsyncThunk(
   "account/loadAccountDetails",
   async ({ networkID, provider, address }: IBaseAddressAsyncThunk, { dispatch }) => {
     const atherContract = new ethers.Contract(addresses[networkID].ATHER_ADDRESS as string, ierc20Abi, provider) as IERC20;
-    const stakeAllowance = await atherContract.allowance(address, addresses[networkID].STAKING_HELPER_ADDRESS);
+    const stakeAllowance = await atherContract.allowance(address, addresses[networkID].TREASURY_ADDRESS);
 
     const satherContract = new ethers.Contract(addresses[networkID].SATHER_ADDRESS as string, sATHER, provider) as SAtherton;
-    const unstakeAllowance = await satherContract.allowance(address, addresses[networkID].STAKING_ADDRESS);
+    const unstakeAllowance = await satherContract.allowance(address, addresses[networkID].TREASURY_ADDRESS);
     // const poolAllowance = await satherContract.allowance(address, addresses[networkID].PT_PRIZE_POOL_ADDRESS);
-    const wrapAllowance = await satherContract.allowance(address, addresses[networkID].WSATHER_ADDRESS);
+    // const wrapAllowance = await satherContract.allowance(address, addresses[networkID].WSATHER_ADDRESS);
 
-    const wsatherContract = new ethers.Contract(addresses[networkID].WSATHER_ADDRESS as string, wsATHER, provider) as WsATHER;
-    const unwrapAllowance = await wsatherContract.allowance(address, addresses[networkID].WSATHER_ADDRESS);
+    // const wsatherContract = new ethers.Contract(addresses[networkID].WSATHER_ADDRESS as string, wsATHER, provider) as WsATHER;
+    // const unwrapAllowance = await wsatherContract.allowance(address, addresses[networkID].WSATHER_ADDRESS);
 
     await dispatch(getBalances({ address, networkID, provider }));
 
@@ -73,8 +75,8 @@ export const loadAccountDetails = createAsyncThunk(
         atherUnstake: +unstakeAllowance,
       },
       wrapping: {
-        atherWrap: +wrapAllowance,
-        atherUnwrap: +unwrapAllowance,
+        // atherWrap: +wrapAllowance,
+        // atherUnwrap: +unwrapAllowance,
       },
       pooling: {
         

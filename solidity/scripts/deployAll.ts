@@ -1,5 +1,35 @@
 import { network, ethers } from 'hardhat';
+import {
+  AthertonUSDToken,
+  AthertonERC20Token,
+  AthertonStaking,
+  AthertonTreasury,
+  TokenEvalutorUniswapV2,
+  SAtherton,
+} from '../typechain';
 const provider = ethers.provider;
+
+// Ethereum 0 address, used when toggling changes in treasury
+const zeroAddress = '0x0000000000000000000000000000000000000000';
+const settings = {
+  reuse: false,
+};
+const e18 = (v: string) => {
+  if (v.indexOf('.') >= 0 || v.indexOf('-') >= 0)  {
+    throw new Error('Bad token value, please use integer values');
+  }
+  return v + '000000000000000000';
+};
+const contract = async <T>(contractName: string, addr: string, args: any[] = []) => {
+  const ContractDef = await ethers.getContractFactory(contractName);
+  let contractInst: T ;
+  if (!settings.reuse) {
+    contractInst = await ContractDef.deploy(...args) as  any;
+  } else {
+    contractInst = ContractDef.attach(addr) as any;
+  }
+  return contractInst;
+};
 
 async function main() {
 
@@ -8,189 +38,172 @@ async function main() {
 
     const [ deployer ] = await ethers.getSigners();
     const dao = deployer;
-    console.log(`Deploying contracts with the account: ${deployer.address}`);
+    console.log(`Deployer: ${deployer.address}`);
     console.log(`DAO address: ${dao.address}`);
 
     const currentBlockNumber = await provider.getBlockNumber();
     console.log(`Current block number: ${currentBlockNumber}`);
-
-    // Initial staking index
-    // const initialIndex = '7675210820';
+    console.log('');
 
     // First block epoch occurs
-    const firstEpochBlock = currentBlockNumber + '';
-
-    // What epoch will be first epoch
-    const firstEpochNumber = '1';
-
-    // How many blocks are in each epoch
-    const epochLengthInBlocks = '2200';
-
-    // // Initial reward rate for epoch
-    // const initialRewardRate = '3000';
-
-    // // Ethereum 0 address, used when toggling changes in treasury
-    // const zeroAddress = '0x0000000000000000000000000000000000000000';
-
-    // // Large number for approval for Frax and DAI
-    // const largeApproval = '100000000000000000000000000000000';
-
-    // // Initial mint for Frax and DAI (10,000,000)
-    // const initialMint = '10000000000000000000000000';
-
-    // // DAI bond BCV
-    // const daiBondBCV = '369';
-
-    // // Frax bond BCV
-    // const fraxBondBCV = '690';
-
-    // // Bond vesting length in blocks. 33110 ~ 5 days
-    // const bondVestingLength = '33110';
-
-    // // Min bond price
-    // const minBondPrice = '50000';
-
-    // // Max bond payout
-    // const maxBondPayout = '50'
-
-    // // DAO fee for bond
-    // const bondFee = '10000';
-
-    // // Max debt bond can take on
-    // const maxBondDebt = '1000000000000000';
-
-    // // Initial Bond debt
-    // const intialBondDebt = '0'
+    const epochLengthInBlocks = 2200;
+    const firstEpochBlockEnds = currentBlockNumber + epochLengthInBlocks;
+    const initialDistribute = e18('1000');
 
 
+    // ==========================================================================
+    //  Contract creation
+    // ==========================================================================
 
+    // const uniswapv2 = '0xbb8d99bfdef77f53d5ee6375ca2895afed520363';
+    '0xbb8d99bfdef77f53d5ee6375ca2895afed520363';
 
+    // Ather - AtherUSD grounding lp pair
+    const groundingPair = '0x9c58C78122341A4240462bE6f67Ac0236d575e2a';
 
+    // Deploy ATHER
+    const ATHER = await ethers.getContractFactory('AthertonERC20Token');
+    // const ather = await ATHER.deploy() as AthertonERC20Token;
+    const ather = ATHER.attach('0x1bE23924aF2F42dE270335462764ce4530bEa77c') as AthertonERC20Token;
+    console.log( "ATHER: " + ather.address );
 
+    // Deploy ATHER
+    const ATHERUSD = await ethers.getContractFactory('AthertonUSDToken');
+    // const atherUSD = await ATHERUSD.deploy() as AthertonUSDToken;
+    const atherUSD = ATHERUSD.attach('0x338C140f0025a9706c965ee1d54B6B00261B8b4D') as AthertonUSDToken;
+    console.log( "ATHER-USD: " + atherUSD.address );
 
+    // Deploy sATHER
+    const SATHER = await ethers.getContractFactory('sAtherton');
+    // const sATHER = await SATHER.deploy() as SAtherton;
+    const sATHER = SATHER.attach('0x26944D6EabBCa3F3b13E6e17097c82057B2292a2') as SAtherton;
+    console.log( "sATHER: " + sATHER.address );
 
+    const TEvUniswapV2 = await ethers.getContractFactory('TokenEvalutorUniswapV2');
+    // const evaluator = await TEvUniswapV2.deploy() as TokenEvalutorUniswapV2;
+    const evaluator = TEvUniswapV2.attach('0x8576399754c4e7aeB0EF0D837bB6e96A1746fc22') as TokenEvalutorUniswapV2;
+    console.log( "Evaluator: " + evaluator.address );
 
-    // // Deploy ATHER
-    // const ATHER = await ethers.getContractFactory('AthertonERC20Token');
-    // const ather = await ATHER.deploy();
-    // console.log( "ATHER: " + ather.address );
+    // Deploy treasury
+    const Treasury = await ethers.getContractFactory('AthertonTreasury'); 
+    // const treasury = await Treasury.deploy( ather.address, atherUSD.address, sATHER.address ) as AthertonTreasury;
+    const treasury = Treasury.attach('0x5CeAA8baEa348EBaF4B8D68bb9eA57A087FE9701') as AthertonTreasury;
+    console.log( "Treasury: " + treasury.address );
+    // await ather.setVault(treasury.address); console.log('Treasury set as Vault for ATHER');
+    // await atherUSD.setVault(treasury.address); console.log('Treasury set as Vault for ATHER-USD');
+    // await sATHER.setVault(treasury.address); console.log('Treasury set as Vault for sAther');
 
-    // // Deploy sATHER
-    // const SATHER = await ethers.getContractFactory('sAtherton');
-    // const sATHER = await SATHER.deploy();
-    // console.log( "sATHER: " + sATHER.address );
+    // Add Ather Pricing Source
+    await treasury.setFloatingToken( true, ather.address, evaluator.address, groundingPair ); console.log( "Registered ATHER as floating token");
+    await treasury.setStableToken( true, atherUSD.address ); console.log( "Registered ATHERUSD as stable token");
 
-    // // Deploy treasury
-    // const Treasury = await ethers.getContractFactory('AthertonTreasury'); 
-    // const treasury = await Treasury.deploy( dao.address, ather.address, 0 );
-    // console.log( "Treasury: " + treasury.address );
+    // Deploy Staking
+    const Staking = await ethers.getContractFactory('AthertonStaking');
+    const staking = await Staking.deploy( ather.address, sATHER.address, treasury.address, epochLengthInBlocks, firstEpochBlockEnds, initialDistribute ) as AthertonStaking;
+    // const staking = Staking.attach('0xa3Cd6D22Fed8990ecDf7E26EdE5D00760708002D') as AthertonStaking;
+    console.log( "Staking: " + staking.address );
 
-    // // Set treasury for ATHER token
-    // await ather.setVault(treasury.address);
+    // Add default staking contract
+    await treasury.setStakingContract(true, staking.address); console.log("Registered staking contract to treasury");
+    await treasury.setStakingContract(false, '0xa3Cd6D22Fed8990ecDf7E26EdE5D00760708002D'); console.log("Removed old staking contract");
 
-    // // Deploy Staking
-    // const Staking = await ethers.getContractFactory('AthertonStaking');
-    // const staking = await Staking.deploy( dao.address, ather.address, sATHER.address, epochLengthInBlocks, firstEpochNumber, firstEpochBlock );
-    // console.log( "Staking: " + staking.address );
+    // Ather - AtherUSD grounding lp pair
+    const v = await evaluator.valuationFloating(ather.address, groundingPair, e18('10'));
+    console.log('Valuation of 10 Athers: ', v);
+    const v2 = await evaluator.valuationLpToken(groundingPair, e18('10'));
+    console.log('Valuation of 10 Athers-AtherUSD LP Token: ', v2);
 
-    // // Deploy wrapped staked ather
-    // const WSATHER = await ethers.getContractFactory('wsATHER');
-    // const wsATHER = await WSATHER.deploy(staking.address, ather.address, sATHER.address);
-    // console.log( "wsATHER: " + wsATHER.address );
+    // 9112605771316988500 // 763636363636363636
+    // ==========================================================================
+    //  Hook up all contracts
+    // ==========================================================================
 
-    // // Deploy staking warmup
-    // const StakingWarmpup = await ethers.getContractFactory('StakingWarmup');
-    // const stakingWarmup = await StakingWarmpup.deploy(staking.address, sATHER.address);
-    // console.log( "Staking Warmup " + stakingWarmup.address);
+    // TEST: Deployer get funds
+    // await treasury.incurUnsecured(deployer.address, e18('10000000')); // 10M Ather
+    // await treasury.incurUnsecuredUSD(deployer.address, e18('10000000')); // 10M AtherUSD
 
-    // // Deploy staking helper
-    // const StakingHelper = await ethers.getContractFactory('StakingHelper');
-    // const stakingHelper = await StakingHelper.deploy(staking.address, ather.address);
-    // console.log( "Staking Helper " + stakingHelper.address);
+    // Add default staking contract
+    // await treasury.addStakingContract(staking.address);
 
-    // // Deploy staking distributor
-    // const Distributor = await ethers.getContractFactory('StakingDistributor');
-    // const distributor = await Distributor.deploy(treasury.address, ather.address, epochLengthInBlocks, firstEpochBlock);
-    // console.log( "Distributor " + distributor.address);
+    process.exit(0);
 
-    // // Deploy bonding calc
-    // const AthertonBondingCalculator = await ethers.getContractFactory('AthertonBondCalculator');
-    // const athertonBondingCalculator = await AthertonBondingCalculator.deploy( ather.address );
-    // console.log( "Bond Calculator: " + athertonBondingCalculator.address );
+    // treasury.setAuthority()
 
-    // // Redeem Helper
-    // const RedeemHelper = await ethers.getContractFactory('RedeemHelper');
-    // const redeemHelper = await RedeemHelper.deploy();
-    // console.log( "Redeem Helper: " + redeemHelper.address );
-
-
-
-
-
-    // // Deploy DAI bond
-    // //@dev changed function call to Treasury of 'valueOfToken' to 'valueOfTokenToken' in BondDepository due to change in Treausry contract
-    // const DAIBond = await ethers.getContractFactory('AthertonBondDepository');
-    // const daiBond = await DAIBond.deploy(ather.address, dai.address, treasury.address, dao.address, zeroAddress);
-
-    // // Deploy Frax bond
-    // //@dev changed function call to Treasury of 'valueOfToken' to 'valueOfTokenToken' in BondDepository due to change in Treausry contract
-    // const FraxBond = await ethers.getContractFactory('MockAthertonBondDepository');
-    // const fraxBond = await FraxBond.deploy(ather.address, frax.address, treasury.address, dao.address, zeroAddress);
-
-    // // queue and toggle DAI and Frax bond reserve depositor
-    // await treasury.queue('0', daiBond.address);
-    // await treasury.queue('0', fraxBond.address);
-    // await treasury.toggle('0', daiBond.address, zeroAddress);
-    // await treasury.toggle('0', fraxBond.address, zeroAddress);
-
-    // // Set DAI and Frax bond terms
-    // await daiBond.initializeBondTerms(daiBondBCV, bondVestingLength, minBondPrice, maxBondPayout, bondFee, maxBondDebt, intialBondDebt);
-    // await fraxBond.initializeBondTerms(fraxBondBCV, bondVestingLength, minBondPrice, maxBondPayout, bondFee, maxBondDebt, intialBondDebt);
-
-    // // Set staking for DAI and Frax bond
-    // await daiBond.setStaking(staking.address, stakingHelper.address);
-    // await fraxBond.setStaking(staking.address, stakingHelper.address);
-
-    // // Initialize sATHER and set the index
-    // await sATHER.initialize(staking.address);
-    // await sATHER.setIndex(initialIndex);
-
-    // // set distributor contract and warmup contract
-    // await staking.setContract('0', distributor.address);
-    // await staking.setContract('1', stakingWarmup.address);
-
-    // // Set treasury for ATHER token
-    // await ather.setVault(treasury.address);
-
-    // // Add staking contract as distributor recipient
-    // await distributor.addRecipient(staking.address, initialRewardRate);
-
-    // // queue and toggle reward manager
-    // await treasury.queue('8', distributor.address);
-    // await treasury.toggle('8', distributor.address, zeroAddress);
+    // // queue and toggle AtherUSD as reserve token
+    // await treasury.queue('2', atherUSD.address);
+    // await treasury.toggle('2', atherUSD.address, zeroAddress);
 
     // // queue and toggle deployer reserve depositor
     // await treasury.queue('0', deployer.address);
     // await treasury.toggle('0', deployer.address, zeroAddress);
 
     // // queue and toggle liquidity depositor
-    // await treasury.queue('4', deployer.address, );
+    // await treasury.queue('4', deployer.address);
     // await treasury.toggle('4', deployer.address, zeroAddress);
 
-    // // Approve the treasury to spend DAI and Frax
-    // await dai.approve(treasury.address, largeApproval );
-    // await frax.approve(treasury.address, largeApproval );
+    // Approve staking and staking helper contact to spend deployer's ATHER
+    // await ather.approve(staking.address, e18('1000000000'));
+    // await ather.approve(stakingHelper.address, e18('1000000000'));
 
-    // // Approve dai and frax bonds to spend deployer's DAI and Frax
-    // await dai.approve(daiBond.address, largeApproval );
-    // await frax.approve(fraxBond.address, largeApproval );
+    // await stakingHelper.stake(e18('1000'));
 
-    // // Approve staking and staking helper contact to spend deployer's ATHER
-    // await ather.approve(staking.address, largeApproval);
-    // await ather.approve(stakingHelper.address, largeApproval);
+    // ==========================================================================
+    //  Initial AtherUSD Bond
+    // ==========================================================================
+
+    // // Ather USD bond
+    // console.log('Creating AtherUSD bond depository.');
+    // const ATHERUSDBond = await ethers.getContractFactory('AthertonBondDepository');
+    // const atherUSDBond = await ATHERUSDBond.deploy(dao.address, treasury.address, ather.address, atherUSD.address, zeroAddress) as AthertonBondDepository;
+    // // const atherUSDBond = ATHERUSDBond.attach('0xc1c744BDcC5EC4Bb7C289a0CebF9c67aA21a3D08') as AthertonBondDepository;
+    // console.log( "AtherUSD Bond: " + atherUSDBond.address );
+
+    // // queue and toggle AtherUSD bond liquidity token
+    // console.log('Adding AtherUSD Bond on the approved liquidity asset list');
+    // console.log('Setting staking address for this bond');
+    // await atherUSDBond.setStaking(staking.address, true);
+    // const atherUSDBondTerms = {
+    //   bcv: '369', // Control variable
+    //   vestingLength: '33110', // Bond vesting length in blocks. 33110 ~ 5 days
+    //   minBondPrice: '50000',
+    //   maxBondPayout: '5000',
+    //   bondFee: '50',
+    //   maxBondDebt: '1000000' + '000000000', // 1M ATHER max debt
+    //   intialBondDebt: '0',
+    // };
+    // console.log('Setting bond terms:', atherUSDBondTerms);
+    // await atherUSDBond.initializeBondTerms(
+    //   atherUSDBondTerms.bcv,
+    //   atherUSDBondTerms.vestingLength,
+    //   atherUSDBondTerms.minBondPrice,
+    //   atherUSDBondTerms.maxBondPayout,
+    //   atherUSDBondTerms.bondFee,
+    //   atherUSDBondTerms.maxBondDebt,
+    //   atherUSDBondTerms.intialBondDebt,
+    // );
+    // console.log('Approve treasury to use deployer\'s AtherUSD');
+    // await atherUSD.approve(treasury.address, e18('1000000000') );
+    // console.log('Approve atherUSDBond to use deployer\'s AtherUSD');
+    // await atherUSD.approve(atherUSDBond.address, e18('1000000000') );
+
+    // await treasury.deposit(e18('10000'), atherUSD.address, e18('10000'));
+
+
+    // // Bond Ops
+
+    // // Deposit 1,000,000 AtherUSD to treasury, 600,000 ATHER gets minted to deployer and 8,400,000 are in treasury as excesss reserves
+    // await treasury.deposit( e18('1000000'), atherUSD.address, e18('500000') );
+
+    // Bond 1,000 ATHER and Frax in each of their bonds
+    // console.log('depositing bond');
+    // await atherUSDBond.deposit(e18('10000'), '600000', deployer.address );
+    // console.log('depositing bond2');
+
+
+    // await fraxBond.initializeBondTerms(fraxBondBCV, bondVestingLength, minBondPrice, maxBondPayout, bondFee, maxBondDebt, intialBondDebt);
 
     // // Deposit 9,000,000 DAI to treasury, 600,000 ATHER gets minted to deployer and 8,400,000 are in treasury as excesss reserves
-    // await treasury.deposit('9000000000000000000000000', dai.address, '8400000000000000');
+    // await treasury.deposit('9000000' + '000000000000000000', dai.address, '8400000000000000');
 
     // // Deposit 5,000,000 Frax to treasury, all is profit and goes as excess reserves
     // await treasury.deposit('5000000000000000000000000', frax.address, '5000000000000000');

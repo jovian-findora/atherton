@@ -72,55 +72,55 @@ import { getTokenPrice } from "src/helpers";
 //   },
 // });
 
-// export const lusd = new StableBond({
-//   name: "lusd",
-//   displayName: "LUSD",
-//   bondToken: "LUSD",
-//   isAvailable: { [NetworkID.Mainnet]: false, [NetworkID.Testnet]: true },
-//   bondIconSvg: LusdImg,
-//   bondContractABI: LusdBondContract,
-//   networkAddrs: {
-//     [NetworkID.Mainnet]: {
-//       bondAddress: "0x10C0f93f64e3C8D0a1b0f4B87d6155fd9e89D08D",
-//       reserveAddress: "0x5f98805A4E8be255a32880FDeC7F6728C6568bA0",
-//     },
-//     [NetworkID.Testnet]: {
-//       bondAddress: "0x3aD02C4E4D1234590E87A1f9a73B8E0fd8CF8CCa",
-//       reserveAddress: "0x45754dF05AA6305114004358eCf8D04FF3B84e26",
-//     },
-//   },
-// });
-
-export const eth = new CustomBond({
-  name: "eth",
-  displayName: "wETH",
-  lpUrl: "",
-  bondType: BondType.StableAsset,
-  bondToken: "wETH",
+export const atherUSD = new StableBond({
+  name: "atherUSD",
+  displayName: "AtherUSD",
+  bondToken: "AtherUSD",
   isAvailable: { [NetworkID.Mainnet]: true, [NetworkID.Testnet]: true },
-  bondIconSvg: wETHImg,
-  bondContractABI: null as any, // TODO
-  reserveContract: ierc20Abi, // The Standard ierc20Abi since they're normal tokens
+  bondIconSvg: LusdImg,
+  bondContractABI: null,
   networkAddrs: {
     [NetworkID.Mainnet]: {
-      bondAddress: "0xE6295201CD1ff13CeD5f063a5421c39A1D236F1c",
-      reserveAddress: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      bondAddress: "0x8D8a9D147BD08a5A8767Bc24CEDcc2eEE4dcaE46",
+      reserveAddress: "0x6551Eb413A2D3Ab7A371cAF3ac25055106ac4796",
     },
     [NetworkID.Testnet]: {
-      bondAddress: "0xca7b90f8158A4FAA606952c023596EE6d322bcf0",
-      reserveAddress: "0xc778417e063141139fce010982780140aa0cd5ab",
+      bondAddress: "0x8D8a9D147BD08a5A8767Bc24CEDcc2eEE4dcaE46",
+      reserveAddress: "0x6551Eb413A2D3Ab7A371cAF3ac25055106ac4796",
     },
   },
-  customTreasuryBalanceFunc: async function (this: CustomBond, networkID, provider) {
-    const ethBondContract = this.getContractForBond(networkID, provider);
-    // let ethPrice: BigNumberish = await ethBondContract.assetPrice();
-    // ethPrice = Number(ethPrice.toString()) / Math.pow(10, 8);
-    // const token = this.getContractForReserve(networkID, provider);
-    // let ethAmount: BigNumberish = await token.balanceOf(addresses[networkID].TREASURY_ADDRESS);
-    // ethAmount = Number(ethAmount.toString()) / Math.pow(10, 18);
-    return 0;
-  },
 });
+
+// export const eth = new CustomBond({
+//   name: "eth",
+//   displayName: "wETH",
+//   lpUrl: "",
+//   bondType: BondType.StableAsset,
+//   bondToken: "wETH",
+//   isAvailable: { [NetworkID.Mainnet]: true, [NetworkID.Testnet]: true },
+//   bondIconSvg: wETHImg,
+//   bondContractABI: null as any, // TODO
+//   reserveContract: ierc20Abi, // The Standard ierc20Abi since they're normal tokens
+//   networkAddrs: {
+//     [NetworkID.Mainnet]: {
+//       bondAddress: "0xE6295201CD1ff13CeD5f063a5421c39A1D236F1c",
+//       reserveAddress: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+//     },
+//     [NetworkID.Testnet]: {
+//       bondAddress: "0xca7b90f8158A4FAA606952c023596EE6d322bcf0",
+//       reserveAddress: "0xc778417e063141139fce010982780140aa0cd5ab",
+//     },
+//   },
+//   customTreasuryBalanceFunc: async function (this: CustomBond, networkID, provider) {
+//     const ethBondContract = this.getContractForBond(networkID, provider);
+//     // let ethPrice: BigNumberish = await ethBondContract.assetPrice();
+//     // ethPrice = Number(ethPrice.toString()) / Math.pow(10, 8);
+//     // const token = this.getContractForReserve(networkID, provider);
+//     // let ethAmount: BigNumberish = await token.balanceOf(addresses[networkID].TREASURY_ADDRESS);
+//     // ethAmount = Number(ethAmount.toString()) / Math.pow(10, 18);
+//     return 0;
+//   },
+// });
 
 // export const cvx = new CustomBond({
 //   name: "cvx",
@@ -305,7 +305,7 @@ export const eth = new CustomBond({
 // Is it a stableCoin bond? use `new StableBond`
 // Is it an LP Bond? use `new LPBond`
 // Add new bonds to this array!!
-export const allBonds = [eth];
+export const allBonds = [atherUSD];
 // TODO (appleseed-expiredBonds): there may be a smarter way to refactor this
 export const allExpiredBonds = [];
 export const allBondsMap = allBonds.reduce((prevVal, bond) => {

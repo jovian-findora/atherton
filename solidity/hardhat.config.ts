@@ -10,6 +10,7 @@ const config: HardhatUserConfig = {
     "Findora Forge": {
       url: "https://prod-forge.prod.findora.org:8545",
       chainId: 525,
+      timeout: 70000,
       accounts: accounts['525'],
     },
   },

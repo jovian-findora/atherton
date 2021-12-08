@@ -6,6 +6,7 @@ const interceptedConsoleMessages = ["Wrong network, please switch to"];
 
 // Intercepts an error sent to console and dispatches it to the message framework.
 const consoleInterceptor = (message: string) => {
+  if (!message) { message = ''; }
   if (interceptedConsoleMessages.filter(v => message.startsWith(v)).length > 0) {
     store.dispatch(error(message));
   }

@@ -36,7 +36,6 @@ const addTokenToWallet = (tokenSymbol, tokenAddress, address) => async () => {
         break;
       case "wsATHER":
         tokenPath = WsAtherImg;
-        tokenDecimals = 18;
         break;
       default:
         tokenPath = SAtherImg;
@@ -77,7 +76,7 @@ function AtherMenu() {
 
   const SATHER_ADDRESS = addresses[networkID].SATHER_ADDRESS;
   const ATHER_ADDRESS = addresses[networkID].ATHER_ADDRESS;
-  const PT_TOKEN_ADDRESS = addresses[networkID].PT_TOKEN_ADDRESS;
+  const ATHER_USD_ADDRESS = addresses[networkID].ATHER_USD_ADDRESS;
   const WSATHER_ADDRESS = addresses[networkID].WSATHER_ADDRESS;
   const handleClick = event => {
     setAnchorEl(anchorEl ? null : event.currentTarget);
@@ -166,6 +165,20 @@ function AtherMenu() {
                             style={{ height: "25px", width: "25px" }}
                           />
                           <Typography variant="body1">ATHER</Typography>
+                        </Button>
+                      )}
+                      {ATHER_USD_ADDRESS && (
+                        <Button
+                          variant="contained"
+                          color="secondary"
+                          onClick={addTokenToWallet("AtherUSD", ATHER_USD_ADDRESS, address)}
+                        >
+                          <SvgIcon
+                            component={atherTokenImg}
+                            viewBox="0 0 32 32"
+                            style={{ height: "25px", width: "25px" }}
+                          />
+                          <Typography variant="body1">AtherUSD</Typography>
                         </Button>
                       )}
                       {SATHER_ADDRESS && (

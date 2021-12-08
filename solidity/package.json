@@ -9,6 +9,7 @@
     "@openzeppelin/contracts": "^4.4.0"
   },
   "devDependencies": {
+    "@jovian/type-tools": "^6.0.47",
     "@nomiclabs/hardhat-ethers": "^2.0.3",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@openzeppelin/hardhat-upgrades": "^1.12.0",
@@ -25,7 +26,7 @@
     "hardhat": "^2.7.0",
     "prettier": "^2.5.0",
     "prettier-plugin-solidity": "^1.0.0-beta.19",
-    "solc": "^0.8.10",
+    "solc": "^0.8.0",
     "solhint": "^3.3.6",
     "solhint-plugin-prettier": "0.0.5",
     "truffle": "^5.4.23",
@@ -38,7 +39,7 @@
     "hardhat-compile": "npx hardhat compile --force",
     "truffle-compile": "rm -rf build; truffle compile --all;",
     "typechain-compile": "rm -rf typechain; typechain --target ethers-v5 --out-dir typechain build/contracts/**/*.json",
-    "compile-all": "npm run hardhat-compile; npm run truffle-compile; npm run typechain-compile;",
+    "compile": "npm run hardhat-compile && npm run truffle-compile && npm run typechain-compile;",
     "clean": "npx hardhat clean",
     "sample-deploy-all": "npx hardhat run scripts/deployAll.ts",
     "lint:sol": "solhint -f table contracts/**/*.sol"

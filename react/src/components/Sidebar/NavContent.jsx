@@ -28,6 +28,9 @@ function NavContent() {
 
   const checkPage = useCallback((match, location, page) => {
     const currentPath = location.pathname.replace("/", "");
+    if (currentPath.indexOf("about") >= 0 && page === "about") {
+      return true;
+    }
     if (currentPath.indexOf("dashboard") >= 0 && page === "dashboard") {
       return true;
     }
@@ -66,6 +69,21 @@ function NavContent() {
 
           <div className="dapp-menu-links">
             <div className="dapp-nav" id="navbarNav">
+            <Link
+                component={NavLink}
+                id="about-nav"
+                to="/about"
+                isActive={(match, location) => {
+                  return checkPage(match, location, "about");
+                }}
+                className={`button-dapp-menu ${isActive ? "active" : ""}`}
+              >
+                <Typography variant="h6">
+                  <SvgIcon color="primary" component={BondIcon} />
+                  How It Works
+                </Typography>
+              </Link>
+
               <Link
                 component={NavLink}
                 id="dash-nav"
@@ -111,7 +129,7 @@ function NavContent() {
                 </Box>
               </Link>)}
 
-              <Link
+              {/* <Link
                 component={NavLink}
                 id="bond-nav"
                 to="/bonds"
@@ -124,9 +142,9 @@ function NavContent() {
                   <SvgIcon color="primary" component={BondIcon} />
                   <Trans>Bond</Trans>
                 </Typography>
-              </Link>
+              </Link> */}
 
-              <div className="dapp-menu-data discounts">
+              {/* <div className="dapp-menu-data discounts">
                 <div className="bond-discounts">
                   <Typography variant="body2">
                     <Trans>Bond discounts</Trans>
@@ -149,7 +167,8 @@ function NavContent() {
                     </Link>
                   ))}
                 </div>
-              </div>
+              </div> */}
+
             </div>
           </div>
         </div>

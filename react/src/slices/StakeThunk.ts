@@ -1,15 +1,14 @@
 import { ethers, BigNumber } from "ethers";
 import { addresses } from "../constants";
 import { abi as ierc20ABI } from "../abi/IERC20.json";
-import { abi as AthertonStakingABI } from "../abi/AthertonStaking.json";
-import { abi as StakingHelperABI } from "../abi/StakingHelper.json";
+import { abi as TreasuryABI } from "../abi/AthertonTreasury.json";
 import { clearPendingTxn, fetchPendingTxns, getStakingTypeText } from "./PendingTxnsSlice";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { fetchAccountSuccess, getBalances } from "./AccountSlice";
 import { error, info } from "../slices/MessagesSlice";
 import { IActionValueAsyncThunk, IChangeApprovalAsyncThunk, IJsonRPCError } from "./interfaces";
 import { segmentUA } from "../helpers/userAnalyticHelpers";
-import { IERC20, AthertonStaking, StakingHelper } from "src/typechain";
+import { IERC20, AthertonTreasury } from "src/typechain";
 
 interface IUAData {
   address: string;
@@ -19,7 +18,7 @@ interface IUAData {
   type: string | null;
 }
 
-function alreadyApprovedToken(token: string, stakeAllowance: BigNumber, unstakeAllowance: BigNumber) {
+function alreadyApprovedToken(token: string, stakeAllowance: BigNumber) {
   // set defaults
   let bigZero = BigNumber.from("0");
   let applicableAllowance = bigZero;
@@ -28,7 +27,7 @@ function alreadyApprovedToken(token: string, stakeAllowance: BigNumber, unstakeA
   if (token === "ather") {
     applicableAllowance = stakeAllowance;
   } else if (token === "sather") {
-    applicableAllowance = unstakeAllowance;
+    // applicableAllowance = unstakeAllowance;
   }
 
   // check if allowance exists
@@ -47,19 +46,17 @@ export const changeApproval = createAsyncThunk(
 
     const signer = provider.getSigner();
     const atherContract = new ethers.Contract(addresses[networkID].ATHER_ADDRESS as string, ierc20ABI, signer) as IERC20;
-    const satherContract = new ethers.Contract(addresses[networkID].SATHER_ADDRESS as string, ierc20ABI, signer) as IERC20;
+    // const satherContract = new ethers.Contract(addresses[networkID].SATHER_ADDRESS as string, ierc20ABI, signer) as IERC20;
     let approveTx;
-    let stakeAllowance = await atherContract.allowance(address, addresses[networkID].STAKING_HELPER_ADDRESS);
-    let unstakeAllowance = await satherContract.allowance(address, addresses[networkID].STAKING_ADDRESS);
+    let stakeAllowance = await atherContract.allowance(address, addresses[networkID].TREASURY_ADDRESS);
 
     // return early if approval has already happened
-    if (alreadyApprovedToken(token, stakeAllowance, unstakeAllowance)) {
+    if (alreadyApprovedToken(token, stakeAllowance)) {
       dispatch(info("Approval completed."));
       return dispatch(
         fetchAccountSuccess({
           staking: {
             atherStake: +stakeAllowance,
-            atherUnstake: +unstakeAllowance,
           },
         }),
       );
@@ -69,14 +66,14 @@ export const changeApproval = createAsyncThunk(
       if (token === "ather") {
         // won't run if stakeAllowance > 0
         approveTx = await atherContract.approve(
-          addresses[networkID].STAKING_HELPER_ADDRESS,
-          ethers.utils.parseUnits("1000000000", "gwei").toString(),
+          addresses[networkID].TREASURY_ADDRESS,
+          ethers.utils.parseEther("1000000000").toString(),
         );
       } else if (token === "sather") {
-        approveTx = await satherContract.approve(
-          addresses[networkID].STAKING_ADDRESS,
-          ethers.utils.parseUnits("1000000000", "gwei").toString(),
-        );
+        // approveTx = await satherContract.approve(
+        //   addresses[networkID].TREASURY_ADDRESS,
+        //   ethers.utils.parseEther("1000000000").toString(),
+        // );
       }
 
       const text = "Approve " + (token === "ather" ? "Staking" : "Unstaking");
@@ -96,14 +93,12 @@ export const changeApproval = createAsyncThunk(
     }
 
     // go get fresh allowances
-    stakeAllowance = await atherContract.allowance(address, addresses[networkID].STAKING_HELPER_ADDRESS);
-    unstakeAllowance = await satherContract.allowance(address, addresses[networkID].STAKING_ADDRESS);
+    stakeAllowance = await atherContract.allowance(address, addresses[networkID].TREASURY_ADDRESS);
 
     return dispatch(
       fetchAccountSuccess({
         staking: {
           atherStake: +stakeAllowance,
-          atherUnstake: +unstakeAllowance,
         },
       }),
     );
@@ -120,15 +115,15 @@ export const changeStake = createAsyncThunk(
 
     const signer = provider.getSigner();
     const staking = new ethers.Contract(
-      addresses[networkID].STAKING_ADDRESS as string,
-      AthertonStakingABI,
+      addresses[networkID].TREASURY_ADDRESS as string,
+      TreasuryABI,
       signer,
-    ) as AthertonStaking;
+    ) as AthertonTreasury;
     const stakingHelper = new ethers.Contract(
-      addresses[networkID].STAKING_HELPER_ADDRESS as string,
-      StakingHelperABI,
+      addresses[networkID].TREASURY_ADDRESS as string,
+      TreasuryABI,
       signer,
-    ) as StakingHelper;
+    ) as AthertonTreasury;
 
     let stakeTx;
     let uaData: IUAData = {
@@ -141,10 +136,10 @@ export const changeStake = createAsyncThunk(
     try {
       if (action === "stake") {
         uaData.type = "stake";
-        stakeTx = await stakingHelper.stake(ethers.utils.parseUnits(value, "gwei"));
+        stakeTx = await stakingHelper.stake(addresses[networkID].STAKING_ADDRESS, address, ethers.utils.parseEther(value));
       } else {
         uaData.type = "unstake";
-        stakeTx = await staking.unstake(ethers.utils.parseUnits(value, "gwei"), true);
+        stakeTx = await staking.unstake(addresses[networkID].STAKING_ADDRESS, address, ethers.utils.parseEther(value));
       }
       const pendingTxnType = action === "stake" ? "staking" : "unstaking";
       uaData.txHash = stakeTx.hash;

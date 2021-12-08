@@ -2,7 +2,7 @@
 
 REACT_UI_SRC="../react/src";
 
-npm run "compile-all";
+npm run compile;
 
 rm -rf "${REACT_UI_SRC}/abi";
 rm -rf "${REACT_UI_SRC}/typechain";

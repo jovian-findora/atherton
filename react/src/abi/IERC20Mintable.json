@@ -31,9 +31,27 @@
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "account_",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount_",
+          "type": "uint256"
+        }
+      ],
+      "name": "burnFrom",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
     }
   ],
-  "metadata": "{\"compiler\":{\"version\":\"0.8.0+commit.c7dfd78e\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account_\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount_\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount_\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project:/contracts/util/ERC20Mintable.sol\":\"IERC20Mintable\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"project:/contracts/util/ERC20Mintable.sol\":{\"keccak256\":\"0xefb42b25d5292efc0b7b9af0b7f44729d6959bc3ea6f34e62a5732a233ebc1f1\",\"license\":\"AGPL-3.0-or-later\",\"urls\":[\"bzz-raw://71d012559034501910d166cae540c0b0d6b2334afa0d5767b3dab4c0e066f26a\",\"dweb:/ipfs/QmUzLBM3Rg9a2YXhx1bCq7FYZA7CK5VhA1Cs4qoiFhhxAp\"]}},\"version\":1}",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.0+commit.c7dfd78e\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account_\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount_\",\"type\":\"uint256\"}],\"name\":\"burnFrom\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account_\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount_\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount_\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project:/contracts/util/ERC20Mintable.sol\":\"IERC20Mintable\"},\"evmVersion\":\"istanbul\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"project:/contracts/util/ERC20Mintable.sol\":{\"keccak256\":\"0xa7483abea4ce0f7cf2cd7bc1eda48ae0c6ce104824e83a2b28f74f74ff5aff6a\",\"license\":\"AGPL-3.0-or-later\",\"urls\":[\"bzz-raw://c2cbad068f4054064fdcb504db1f29b88acece2f40905ebc54675b5c7a13d6f8\",\"dweb:/ipfs/QmTtczwqAkYQRVSL4gDwJUpFqUcfPGi8WC8U2qbj6XAvnY\"]}},\"version\":1}",
   "bytecode": "0x",
   "deployedBytecode": "0x",
   "immutableReferences": {},
@@ -41,28 +59,28 @@
   "deployedGeneratedSources": [],
   "sourceMap": "",
   "deployedSourceMap": "",
-  "source": "// SPDX-License-Identifier: AGPL-3.0-or-later\npragma solidity 0.8.0;\n\ninterface IERC20Mintable {\n  function mint( uint256 amount_ ) external;\n  function mint( address account_, uint256 amount_ ) external;\n}\n",
-  "sourcePath": "/var/www/atherton/evm/contracts/util/ERC20Mintable.sol",
+  "source": "// SPDX-License-Identifier: AGPL-3.0-or-later\npragma solidity 0.8.0;\n\ninterface IERC20Mintable {\n  function mint( uint256 amount_ ) external;\n  function mint( address account_, uint256 amount_ ) external;\n  function burnFrom(address account_, uint256 amount_) external;\n}\n",
+  "sourcePath": "/var/www/atherton/solidity/contracts/util/ERC20Mintable.sol",
   "ast": {
     "absolutePath": "project:/contracts/util/ERC20Mintable.sol",
     "exportedSymbols": {
       "IERC20Mintable": [
-        7525
+        6231
       ]
     },
-    "id": 7526,
+    "id": 6232,
     "license": "AGPL-3.0-or-later",
     "nodeType": "SourceUnit",
     "nodes": [
       {
-        "id": 7512,
+        "id": 6211,
         "literals": [
           "solidity",
           "0.8",
           ".0"
         ],
         "nodeType": "PragmaDirective",
-        "src": "46:22:20"
+        "src": "46:22:18"
       },
       {
         "abstract": false,
@@ -70,33 +88,33 @@
         "contractDependencies": [],
         "contractKind": "interface",
         "fullyImplemented": false,
-        "id": 7525,
+        "id": 6231,
         "linearizedBaseContracts": [
-          7525
+          6231
         ],
         "name": "IERC20Mintable",
         "nodeType": "ContractDefinition",
         "nodes": [
           {
             "functionSelector": "a0712d68",
-            "id": 7517,
+            "id": 6216,
             "implemented": false,
             "kind": "function",
             "modifiers": [],
             "name": "mint",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 7515,
+              "id": 6214,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 7514,
+                  "id": 6213,
                   "mutability": "mutable",
                   "name": "amount_",
                   "nodeType": "VariableDeclaration",
-                  "scope": 7517,
-                  "src": "114:15:20",
+                  "scope": 6216,
+                  "src": "114:15:18",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -104,10 +122,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 7513,
+                    "id": 6212,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
-                    "src": "114:7:20",
+                    "src": "114:7:18",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -116,40 +134,40 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "112:19:20"
+              "src": "112:19:18"
             },
             "returnParameters": {
-              "id": 7516,
+              "id": 6215,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "140:0:20"
+              "src": "140:0:18"
             },
-            "scope": 7525,
-            "src": "99:42:20",
+            "scope": 6231,
+            "src": "99:42:18",
             "stateMutability": "nonpayable",
             "virtual": false,
             "visibility": "external"
           },
           {
             "functionSelector": "40c10f19",
-            "id": 7524,
+            "id": 6223,
             "implemented": false,
             "kind": "function",
             "modifiers": [],
             "name": "mint",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 7522,
+              "id": 6221,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 7519,
+                  "id": 6218,
                   "mutability": "mutable",
                   "name": "account_",
                   "nodeType": "VariableDeclaration",
-                  "scope": 7524,
-                  "src": "159:16:20",
+                  "scope": 6223,
+                  "src": "159:16:18",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -157,10 +175,10 @@
                     "typeString": "address"
                   },
                   "typeName": {
-                    "id": 7518,
+                    "id": 6217,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
-                    "src": "159:7:20",
+                    "src": "159:7:18",
                     "stateMutability": "nonpayable",
                     "typeDescriptions": {
                       "typeIdentifier": "t_address",
@@ -171,12 +189,12 @@
                 },
                 {
                   "constant": false,
-                  "id": 7521,
+                  "id": 6220,
                   "mutability": "mutable",
                   "name": "amount_",
                   "nodeType": "VariableDeclaration",
-                  "scope": 7524,
-                  "src": "177:15:20",
+                  "scope": 6223,
+                  "src": "177:15:18",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -184,10 +202,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 7520,
+                    "id": 6219,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
-                    "src": "177:7:20",
+                    "src": "177:7:18",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -196,47 +214,127 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "157:37:20"
+              "src": "157:37:18"
             },
             "returnParameters": {
-              "id": 7523,
+              "id": 6222,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "203:0:20"
+              "src": "203:0:18"
             },
-            "scope": 7525,
-            "src": "144:60:20",
+            "scope": 6231,
+            "src": "144:60:18",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "functionSelector": "79cc6790",
+            "id": 6230,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "burnFrom",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 6228,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 6225,
+                  "mutability": "mutable",
+                  "name": "account_",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6230,
+                  "src": "225:16:18",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 6224,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "225:7:18",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 6227,
+                  "mutability": "mutable",
+                  "name": "amount_",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6230,
+                  "src": "243:15:18",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 6226,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "243:7:18",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "224:35:18"
+            },
+            "returnParameters": {
+              "id": 6229,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "268:0:18"
+            },
+            "scope": 6231,
+            "src": "207:62:18",
             "stateMutability": "nonpayable",
             "virtual": false,
             "visibility": "external"
           }
         ],
-        "scope": 7526,
-        "src": "70:136:20"
+        "scope": 6232,
+        "src": "70:201:18"
       }
     ],
-    "src": "46:161:20"
+    "src": "46:226:18"
   },
   "legacyAST": {
     "absolutePath": "project:/contracts/util/ERC20Mintable.sol",
     "exportedSymbols": {
       "IERC20Mintable": [
-        7525
+        6231
       ]
     },
-    "id": 7526,
+    "id": 6232,
     "license": "AGPL-3.0-or-later",
     "nodeType": "SourceUnit",
     "nodes": [
       {
-        "id": 7512,
+        "id": 6211,
         "literals": [
           "solidity",
           "0.8",
           ".0"
         ],
         "nodeType": "PragmaDirective",
-        "src": "46:22:20"
+        "src": "46:22:18"
       },
       {
         "abstract": false,
@@ -244,33 +342,33 @@
         "contractDependencies": [],
         "contractKind": "interface",
         "fullyImplemented": false,
-        "id": 7525,
+        "id": 6231,
         "linearizedBaseContracts": [
-          7525
+          6231
         ],
         "name": "IERC20Mintable",
         "nodeType": "ContractDefinition",
         "nodes": [
           {
             "functionSelector": "a0712d68",
-            "id": 7517,
+            "id": 6216,
             "implemented": false,
             "kind": "function",
             "modifiers": [],
             "name": "mint",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 7515,
+              "id": 6214,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 7514,
+                  "id": 6213,
                   "mutability": "mutable",
                   "name": "amount_",
                   "nodeType": "VariableDeclaration",
-                  "scope": 7517,
-                  "src": "114:15:20",
+                  "scope": 6216,
+                  "src": "114:15:18",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -278,10 +376,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 7513,
+                    "id": 6212,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
-                    "src": "114:7:20",
+                    "src": "114:7:18",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -290,40 +388,40 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "112:19:20"
+              "src": "112:19:18"
             },
             "returnParameters": {
-              "id": 7516,
+              "id": 6215,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "140:0:20"
+              "src": "140:0:18"
             },
-            "scope": 7525,
-            "src": "99:42:20",
+            "scope": 6231,
+            "src": "99:42:18",
             "stateMutability": "nonpayable",
             "virtual": false,
             "visibility": "external"
           },
           {
             "functionSelector": "40c10f19",
-            "id": 7524,
+            "id": 6223,
             "implemented": false,
             "kind": "function",
             "modifiers": [],
             "name": "mint",
             "nodeType": "FunctionDefinition",
             "parameters": {
-              "id": 7522,
+              "id": 6221,
               "nodeType": "ParameterList",
               "parameters": [
                 {
                   "constant": false,
-                  "id": 7519,
+                  "id": 6218,
                   "mutability": "mutable",
                   "name": "account_",
                   "nodeType": "VariableDeclaration",
-                  "scope": 7524,
-                  "src": "159:16:20",
+                  "scope": 6223,
+                  "src": "159:16:18",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -331,10 +429,10 @@
                     "typeString": "address"
                   },
                   "typeName": {
-                    "id": 7518,
+                    "id": 6217,
                     "name": "address",
                     "nodeType": "ElementaryTypeName",
-                    "src": "159:7:20",
+                    "src": "159:7:18",
                     "stateMutability": "nonpayable",
                     "typeDescriptions": {
                       "typeIdentifier": "t_address",
@@ -345,12 +443,12 @@
                 },
                 {
                   "constant": false,
-                  "id": 7521,
+                  "id": 6220,
                   "mutability": "mutable",
                   "name": "amount_",
                   "nodeType": "VariableDeclaration",
-                  "scope": 7524,
-                  "src": "177:15:20",
+                  "scope": 6223,
+                  "src": "177:15:18",
                   "stateVariable": false,
                   "storageLocation": "default",
                   "typeDescriptions": {
@@ -358,10 +456,10 @@
                     "typeString": "uint256"
                   },
                   "typeName": {
-                    "id": 7520,
+                    "id": 6219,
                     "name": "uint256",
                     "nodeType": "ElementaryTypeName",
-                    "src": "177:7:20",
+                    "src": "177:7:18",
                     "typeDescriptions": {
                       "typeIdentifier": "t_uint256",
                       "typeString": "uint256"
@@ -370,26 +468,106 @@
                   "visibility": "internal"
                 }
               ],
-              "src": "157:37:20"
+              "src": "157:37:18"
             },
             "returnParameters": {
-              "id": 7523,
+              "id": 6222,
               "nodeType": "ParameterList",
               "parameters": [],
-              "src": "203:0:20"
+              "src": "203:0:18"
             },
-            "scope": 7525,
-            "src": "144:60:20",
+            "scope": 6231,
+            "src": "144:60:18",
+            "stateMutability": "nonpayable",
+            "virtual": false,
+            "visibility": "external"
+          },
+          {
+            "functionSelector": "79cc6790",
+            "id": 6230,
+            "implemented": false,
+            "kind": "function",
+            "modifiers": [],
+            "name": "burnFrom",
+            "nodeType": "FunctionDefinition",
+            "parameters": {
+              "id": 6228,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 6225,
+                  "mutability": "mutable",
+                  "name": "account_",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6230,
+                  "src": "225:16:18",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_address",
+                    "typeString": "address"
+                  },
+                  "typeName": {
+                    "id": 6224,
+                    "name": "address",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "225:7:18",
+                    "stateMutability": "nonpayable",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_address",
+                      "typeString": "address"
+                    }
+                  },
+                  "visibility": "internal"
+                },
+                {
+                  "constant": false,
+                  "id": 6227,
+                  "mutability": "mutable",
+                  "name": "amount_",
+                  "nodeType": "VariableDeclaration",
+                  "scope": 6230,
+                  "src": "243:15:18",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 6226,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "243:7:18",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "visibility": "internal"
+                }
+              ],
+              "src": "224:35:18"
+            },
+            "returnParameters": {
+              "id": 6229,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "268:0:18"
+            },
+            "scope": 6231,
+            "src": "207:62:18",
             "stateMutability": "nonpayable",
             "virtual": false,
             "visibility": "external"
           }
         ],
-        "scope": 7526,
-        "src": "70:136:20"
+        "scope": 6232,
+        "src": "70:201:18"
       }
     ],
-    "src": "46:161:20"
+    "src": "46:226:18"
   },
   "compiler": {
     "name": "solc",
@@ -397,7 +575,7 @@
   },
   "networks": {},
   "schemaVersion": "3.4.3",
-  "updatedAt": "2021-12-04T00:51:06.104Z",
+  "updatedAt": "2021-12-07T05:40:45.885Z",
   "devdoc": {
     "kind": "dev",
     "methods": {},

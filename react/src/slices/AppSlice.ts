@@ -2,12 +2,15 @@ import { ethers } from "ethers";
 import { addresses } from "../constants";
 import { abi as AthertonStakingABI } from "../abi/AthertonStaking.json";
 import { abi as sATHER } from "../abi/sAtherton.json";
+import { abi as TreasuryABI } from "../abi/AthertonTreasury.json";
+import { abi as PairABI } from "../abi/IUniswapV2Pair.json";
+import { abi as Erc20ABI } from "../abi/ERC20.json";
 import { setAll, getTokenPrice, getMarketPrice } from "../helpers";
 import apollo from "../lib/apolloClient";
 import { createSlice, createSelector, createAsyncThunk } from "@reduxjs/toolkit";
 import { RootState } from "src/store";
 import { IBaseAsyncThunk } from "./interfaces";
-import { AthertonStaking, SAtherton } from "src/typechain";
+import { AthertonStaking, SAtherton, AthertonBondCalculator__factory, IUniswapV2Pair, ERC20 } from "src/typechain";
 
 interface IProtocolMetrics {
   readonly timestamp: string;
@@ -53,11 +56,28 @@ export const loadAppDetails = createAsyncThunk(
     //   console.error("Returned a null response when querying TheGraph");
     //   return;
     // }
+    const pairAddr = '0x706Ce39a7A0352b2005cD009102d1439e53c063b';
+    const e18 = '1000000000000000000';
+    const e9 = '1000000000';
 
-    const stakingTVL = 100000; // parseFloat(graphData.data.protocolMetrics[0].totalValueLocked);
+    // try {
+    //   const bondcalc = new AthertonBondCalculator__factory().attach(addresses[networkID].ATHER_EVAL_ADDRESS).connect(provider);
+    //   const n = await bondcalc.valuation(pairAddr, e18);
+    //   const c = parseInt(n.toString(), 10) / 1000000000;
+    //   console.log(c);
+    // } catch (e) {
+
+    // }
+    // const stakeAllowance = await atherContract.allowance(address, addresses[networkID].);
+
+     // parseFloat(graphData.data.protocolMetrics[0].totalValueLocked);
     // NOTE (appleseed): marketPrice from Graph was delayed, so get CoinGecko price
     // const marketPrice = parseFloat(graphData.data.protocolMetrics[0].atherPrice);
-    let marketPrice = 1;
+    const pair = new ethers.Contract(pairAddr, PairABI, provider) as IUniswapV2Pair;
+    const r = await pair.getReserves();
+    let v: any = r.reserve0.mul(e18).div(r.reserve1).div(e9);
+    v = parseInt(v.toString(), 10) / 1000000000;
+    let marketPrice = v; //parseInt(atherPrice.toString(), 10);
     // try {
     //   const originalPromiseResult = await dispatch(
     //     loadMarketPrice({ networkID: networkID, provider: provider }),
@@ -68,10 +88,20 @@ export const loadAppDetails = createAsyncThunk(
     //   console.error("Returned a null response from dispatch(loadMarketPrice)");
     //   return;
     // }
+    const ather = new ethers.Contract(addresses[networkID].ATHER_ADDRESS, Erc20ABI, provider) as ERC20;
+    const atherTotalSupplyBN = await ather.totalSupply();
+    const totalSupply = parseInt(atherTotalSupplyBN.div(e18).toString(), 10); // parseFloat(graphData.data.protocolMetrics[0].totalSupply);
 
-    const marketCap = 10000; // parseFloat(graphData.data.protocolMetrics[0].marketCap);
-    const circSupply = 5000; //parseFloat(graphData.data.protocolMetrics[0].atherCirculatingSupply);
-    const totalSupply = 100000; // parseFloat(graphData.data.protocolMetrics[0].totalSupply);
+    const sather = new ethers.Contract(addresses[networkID].SATHER_ADDRESS, Erc20ABI, provider) as ERC20;
+    const sAtherTotalSupplyBN = await sather.totalSupply();
+    const sAtherTotalSupply = parseInt(sAtherTotalSupplyBN.div(e18).toString(), 10); // parseFloat(graphData.data.protocolMetrics[0].totalSupply);
+    const circulatingSupply = parseInt(atherTotalSupplyBN.sub(sAtherTotalSupplyBN).div(e18).toString(), 10);
+    console.log(circulatingSupply);
+
+    const stakingTVL = sAtherTotalSupply * marketPrice;
+
+    const marketCap = totalSupply * marketPrice; // parseFloat(graphData.data.protocolMetrics[0].marketCap);
+    const circSupply = totalSupply - sAtherTotalSupply; //parseFloat(graphData.data.protocolMetrics[0].atherCirculatingSupply);
     const treasuryMarketValue = 110000; // parseFloat(graphData.data.protocolMetrics[0].treasuryMarketValue);
     // const currentBlock = parseFloat(graphData.data._meta.block.number);
 
@@ -102,14 +132,14 @@ export const loadAppDetails = createAsyncThunk(
 
     // Calculating staking
     const epoch = await stakingContract.epoch();
-    const stakingReward = epoch.distribute;
-    const circ = await satherMainContract.circulatingSupply();
-    const stakingRebase = Number(stakingReward.toString()) / Number(circ.toString());
+    const stakingReward = epoch.distribute.div(e18);
+    const circ = sAtherTotalSupply;
+    const stakingRebase = Number(stakingReward.toString()) / circ;
     const fiveDayRate = Math.pow(1 + stakingRebase, 5 * 3) - 1;
     const stakingAPY = Math.pow(1 + stakingRebase, 365 * 3) - 1;
 
     // Current index
-    const currentIndex = await stakingContract.index();
+    const currentIndex = 0;
     // console.log(currentIndex);
 
     return {
