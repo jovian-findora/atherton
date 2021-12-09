@@ -40,6 +40,7 @@
     "truffle-compile": "rm -rf build; truffle compile --all;",
     "typechain-compile": "rm -rf typechain; typechain --target ethers-v5 --out-dir typechain build/contracts/**/*.json",
     "compile": "npm run hardhat-compile && npm run truffle-compile && npm run typechain-compile;",
+    "export": "sh integrate.sh",
     "clean": "npx hardhat clean",
     "sample-deploy-all": "npx hardhat run scripts/deployAll.ts",
     "lint:sol": "solhint -f table contracts/**/*.sol"
