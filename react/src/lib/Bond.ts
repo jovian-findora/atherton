@@ -4,7 +4,7 @@ import { ethers } from "ethers";
 import { abi as ierc20Abi } from "src/abi/IERC20.json";
 import { getTokenPrice } from "src/helpers";
 import { getBondCalculator } from "src/helpers/BondCalculator";
-import { AthertonBondDepository, IUniswapV2Pair } from "src/typechain";
+import { TokenEvalutorUniswapV2, IUniswapV2Pair } from "src/typechain";
 import { addresses } from "src/constants";
 import React from "react";
 
@@ -88,7 +88,7 @@ export abstract class Bond {
   }
   getContractForBond(networkID: NetworkID, provider: StaticJsonRpcProvider | JsonRpcSigner) {
     const bondAddress = this.getAddressForBond(networkID);
-    return new ethers.Contract(bondAddress, this.bondContractABI, provider) as AthertonBondDepository;
+    return new ethers.Contract(bondAddress, this.bondContractABI, provider) as TokenEvalutorUniswapV2;
   }
 
   getAddressForReserve(networkID: NetworkID) {
@@ -137,10 +137,8 @@ export class LPBond extends Bond {
     const tokenAddress = this.getAddressForReserve(networkID);
     const bondCalculator = getBondCalculator(networkID, provider);
     const tokenAmount = await token.balanceOf(addresses[networkID].TREASURY_ADDRESS);
-    const valuation = await bondCalculator.valuation(tokenAddress, tokenAmount);
-    const markdown = await bondCalculator.markdown(tokenAddress);
-    let tokenUSD = (Number(valuation.toString()) / Math.pow(10, 9)) * (Number(markdown.toString()) / Math.pow(10, 18));
-    return Number(tokenUSD.toString());
+    const usdValue = await bondCalculator.valuationLpToken(tokenAddress, tokenAmount);
+    return Number(usdValue.toString());
   }
 }
 

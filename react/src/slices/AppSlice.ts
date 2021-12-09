@@ -10,7 +10,7 @@ import apollo from "../lib/apolloClient";
 import { createSlice, createSelector, createAsyncThunk } from "@reduxjs/toolkit";
 import { RootState } from "src/store";
 import { IBaseAsyncThunk } from "./interfaces";
-import { AthertonStaking, SAtherton, AthertonBondCalculator__factory, IUniswapV2Pair, ERC20 } from "src/typechain";
+import { AthertonStaking, SAtherton, IUniswapV2Pair, ERC20 } from "src/typechain";
 
 interface IProtocolMetrics {
   readonly timestamp: string;
@@ -56,7 +56,7 @@ export const loadAppDetails = createAsyncThunk(
     //   console.error("Returned a null response when querying TheGraph");
     //   return;
     // }
-    const pairAddr = '0x706Ce39a7A0352b2005cD009102d1439e53c063b';
+    const pairAddr = '0x4eb169da21ace2E7Ed5Da2e41319B09d51e6E4d7';
     const e18 = '1000000000000000000';
     const e9 = '1000000000';
 
@@ -102,7 +102,7 @@ export const loadAppDetails = createAsyncThunk(
 
     const marketCap = totalSupply * marketPrice; // parseFloat(graphData.data.protocolMetrics[0].marketCap);
     const circSupply = totalSupply - sAtherTotalSupply; //parseFloat(graphData.data.protocolMetrics[0].atherCirculatingSupply);
-    const treasuryMarketValue = 110000; // parseFloat(graphData.data.protocolMetrics[0].treasuryMarketValue);
+    const treasuryMarketValue = 10000000; // parseFloat(graphData.data.protocolMetrics[0].treasuryMarketValue);
     // const currentBlock = parseFloat(graphData.data._meta.block.number);
 
     if (!provider) {
@@ -154,6 +154,10 @@ export const loadAppDetails = createAsyncThunk(
       circSupply,
       totalSupply,
       treasuryMarketValue,
+
+      atherAddress: addresses[networkID].ATHER_ADDRESS,
+      satherAddress: addresses[networkID].SATHER_ADDRESS,
+      atherUsdAddress: addresses[networkID].ATHER_USD_ADDRESS,
     } as IAppData;
   },
 );
@@ -228,6 +232,10 @@ interface IAppData {
   readonly totalSupply?: number;
   readonly treasuryBalance?: number;
   readonly treasuryMarketValue?: number;
+
+  readonly atherAddress?: string;
+  readonly satherAddress?: string;
+  readonly atherUsdAddress?: string;
 }
 
 const initialState: IAppData = {

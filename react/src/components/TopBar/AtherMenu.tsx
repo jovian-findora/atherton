@@ -71,7 +71,6 @@ function AtherMenu() {
   const [anchorEl, setAnchorEl] = useState(null);
   const isEthereumAPIAvailable = window.ethereum;
   const { chainID, address } = useWeb3Context();
-
   const networkID = chainID;
 
   const SATHER_ADDRESS = addresses[networkID].SATHER_ADDRESS;
@@ -102,18 +101,18 @@ function AtherMenu() {
             <Fade {...TransitionProps} timeout={100}>
               <Paper className="ather-menu" elevation={1}>
                 <Box component="div" className="buy-tokens">
-                  {/* <Link
-                    href={`https://app.sushi.com/swap?inputCurrency=${daiAddress}&outputCurrency=${ATHER_ADDRESS}`}
+                  <Link
+                    href={`https://testnet.venice.finance/swap?outputCurrency=${ATHER_ADDRESS}`}
                     target="_blank"
                     rel="noreferrer"
                   >
                     <Button size="large" variant="contained" color="secondary" fullWidth>
                       <Typography align="left">
-                        <Trans>Buy on {new String("Sushiswap")}</Trans>
+                        <Trans>Buy on {new String("Venice Exchange")}</Trans>
                         <SvgIcon component={ArrowUpIcon} htmlColor="#A3A3A3" />
                       </Typography>
                     </Button>
-                  </Link> */}
+                  </Link>
 
                   {/* <Link
                     href={`https://app.uniswap.org/#/swap?inputCurrency=${fraxAddress}&outputCurrency=${ATHER_ADDRESS}`}
@@ -128,11 +127,11 @@ function AtherMenu() {
                     </Button>
                   </Link> */}
 
-                  { conf.wrappingEnabled && (<Link component={NavLink} to="/wrap" style={{ textDecoration: "none" }}>
+                  {/* { conf.wrappingEnabled && (<Link component={NavLink} to="/wrap" style={{ textDecoration: "none" }}>
                     <Button size="large" variant="contained" color="secondary" fullWidth>
                       <Typography align="left">Wrap sATHER</Typography>
                     </Button>
-                  </Link>)}
+                  </Link>)} */}
                 </Box>
 
                 {/* <Box component="div" className="data-links">
@@ -167,20 +166,6 @@ function AtherMenu() {
                           <Typography variant="body1">ATHER</Typography>
                         </Button>
                       )}
-                      {ATHER_USD_ADDRESS && (
-                        <Button
-                          variant="contained"
-                          color="secondary"
-                          onClick={addTokenToWallet("AtherUSD", ATHER_USD_ADDRESS, address)}
-                        >
-                          <SvgIcon
-                            component={atherTokenImg}
-                            viewBox="0 0 32 32"
-                            style={{ height: "25px", width: "25px" }}
-                          />
-                          <Typography variant="body1">AtherUSD</Typography>
-                        </Button>
-                      )}
                       {SATHER_ADDRESS && (
                         <Button
                           variant="contained"
@@ -193,6 +178,20 @@ function AtherMenu() {
                             style={{ height: "25px", width: "25px" }}
                           />
                           <Typography variant="body1">sATHER</Typography>
+                        </Button>
+                      )}
+                      {ATHER_USD_ADDRESS && (
+                        <Button
+                          variant="contained"
+                          color="secondary"
+                          onClick={addTokenToWallet("AtherUSD", ATHER_USD_ADDRESS, address)}
+                        >
+                          <SvgIcon
+                            component={atherTokenImg}
+                            viewBox="0 0 32 32"
+                            style={{ height: "25px", width: "25px" }}
+                          />
+                          <Typography variant="body1">AtherUSD</Typography>
                         </Button>
                       )}
                       {WSATHER_ADDRESS && (

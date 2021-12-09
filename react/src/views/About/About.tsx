@@ -31,6 +31,8 @@ import { error } from "../../slices/MessagesSlice";
 import { ethers } from "ethers";
 import { useAppSelector } from "src/hooks";
 
+import AthertonDiagram from "../../assets/atherton-diagram.jpg";
+
 function a11yProps(index: number) {
   return {
     id: `simple-tab-${index}`,
@@ -164,7 +166,62 @@ function Stake() {
     <div id="about-view">
       <Zoom in={true} onEntered={() => setZoomed(true)}>
         <Paper className="ather-card">
-          <h1>Welcome to Atherton!</h1>
+          <h1>Welcome, Future Athletes!</h1>
+          <div className="tmar3"></div>
+          
+          
+          <h2>About Atherton</h2>
+          {/* <div className="tmar"></div> */}
+          <p>
+            <span>Atherton (<a href="https://github.com/jovian-findora/atherton" target="_blank">GitHub</a>) is a rebranded fork of </span>
+            <span><a href="https://github.com/OlympusDAO/olympusdao.git" target="_blank">OlympusDAO</a> </span>
+            <span>v<a href="https://github.com/OlympusDAO/olympus-contracts/tree/Version-1.1" target="_blank">1.1</a> </span>
+            <span>ported to <a href="https://findora.org/" target="_blank">Findora Network</a>.</span>
+          </p>
+          <div className="tmar5"></div>
+
+
+          <h2>Project Context</h2>
+          <p>
+            <span>OlympusDAO has been successfully managing a <b>floating currency</b> model, which has fractional backing for its OHM currency (Total-value-locked <b>$4B</b> at some point). </span>
+            <span>This had created an investment opportunity for the currency holders while providing a reasonable backing from the treasury to provide protection and reduce volatility.</span>
+          </p>
+          <p>
+            <span>While OlympusDAO had given early investors about x500 returns, the returns are <b>stagnating</b> and the newly onboarded ohmies are unable to </span>
+            <span>see the gains (some have entered at all-time-high and are seeing <b><span style={{ color: 'red' }}>-40%</span></b>).</span>
+          </p>
+          <p>
+            <span>Atherton project aims to give believers </span>
+            <ul>
+              <li>a chance to <b>participate early</b> as founding customers,</li>
+              <li>possible <b>incentive match</b> provided by <a href="https://findora.org/" target="_blank">Findora Network</a> for initial onboarding,</li>
+            </ul>
+            <span>and ultimately, aiming to recreate the success story of OlympusDAO on Findora Network.</span>
+          </p>
+          <div className="tmar5"></div>
+
+          <h2>Design Overview Diagram</h2>
+          <div className="tmar2"></div>
+          <img src={AthertonDiagram} className="diagram" />
+          <div className="tmar4"></div>
+          <p>
+            <span>The two major user interactions with Atherton Treasury:</span>
+            <ol>
+              <li>Staking (dividends + benefits as ATHER value increases)</li>
+              <li>Bonding (fixed yield in ATHER)</li>
+            </ol>
+          </p>
+          <div className="tmar3"></div>
+
+          <p>
+            <span>The two major income sources for Atherton Treasury:</span>
+            <ol>
+              <li>Liquidity providing &amp; yield harvesting on AMMs (automated market makers)</li>
+              <li>Portfolio rebalancing toward appreciating tokens</li>
+            </ol>
+          </p>
+
+          <div className="tmar5"></div>
         </Paper>
       </Zoom>
     </div>

@@ -31,6 +31,9 @@ function NavContent() {
     if (currentPath.indexOf("about") >= 0 && page === "about") {
       return true;
     }
+    if (currentPath.indexOf("get-started") >= 0 && page === "get-started") {
+      return true;
+    }
     if (currentPath.indexOf("dashboard") >= 0 && page === "dashboard") {
       return true;
     }
@@ -69,7 +72,7 @@ function NavContent() {
 
           <div className="dapp-menu-links">
             <div className="dapp-nav" id="navbarNav">
-            <Link
+              <Link
                 component={NavLink}
                 id="about-nav"
                 to="/about"
@@ -80,7 +83,22 @@ function NavContent() {
               >
                 <Typography variant="h6">
                   <SvgIcon color="primary" component={BondIcon} />
-                  How It Works
+                  About
+                </Typography>
+              </Link>
+
+              <Link
+                component={NavLink}
+                id="get-started-nav"
+                to="/get-started"
+                isActive={(match, location) => {
+                  return checkPage(match, location, "get-started");
+                }}
+                className={`button-dapp-menu ${isActive ? "active" : ""}`}
+              >
+                <Typography variant="h6">
+                  <SvgIcon color="primary" component={WrapIcon} />
+                  Get Started
                 </Typography>
               </Link>
 
@@ -102,7 +120,7 @@ function NavContent() {
               <Link
                 component={NavLink}
                 id="stake-nav"
-                to="/"
+                to="/stake"
                 isActive={(match, location) => {
                   return checkPage(match, location, "stake");
                 }}

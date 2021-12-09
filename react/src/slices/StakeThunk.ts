@@ -114,12 +114,7 @@ export const changeStake = createAsyncThunk(
     }
 
     const signer = provider.getSigner();
-    const staking = new ethers.Contract(
-      addresses[networkID].TREASURY_ADDRESS as string,
-      TreasuryABI,
-      signer,
-    ) as AthertonTreasury;
-    const stakingHelper = new ethers.Contract(
+    const treasury = new ethers.Contract(
       addresses[networkID].TREASURY_ADDRESS as string,
       TreasuryABI,
       signer,
@@ -136,10 +131,10 @@ export const changeStake = createAsyncThunk(
     try {
       if (action === "stake") {
         uaData.type = "stake";
-        stakeTx = await stakingHelper.stake(addresses[networkID].STAKING_ADDRESS, address, ethers.utils.parseEther(value));
+        stakeTx = await treasury.stake(addresses[networkID].STAKING_ADDRESS, ethers.utils.parseEther(value), '0');
       } else {
         uaData.type = "unstake";
-        stakeTx = await staking.unstake(addresses[networkID].STAKING_ADDRESS, address, ethers.utils.parseEther(value));
+        stakeTx = await treasury.unstake(addresses[networkID].STAKING_ADDRESS, ethers.utils.parseEther(value));
       }
       const pendingTxnType = action === "stake" ? "staking" : "unstaking";
       uaData.txHash = stakeTx.hash;

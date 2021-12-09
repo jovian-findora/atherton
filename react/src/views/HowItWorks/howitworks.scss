@@ -1,4 +1,4 @@
-#about-view {
+#howitworks-view {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -32,7 +32,6 @@
     width: 80%;
     margin: auto;
     margin-bottom: 10rem;
-    // max-height: 355px;
     .card-header {
       margin-bottom: 1rem;
     }
@@ -61,7 +60,7 @@
       line-height: 1.75;
       margin: 0;
       margin-top: 0.6rem;
-      ul, ol {
+      ul {
         margin: 0;
       }
     }
@@ -85,9 +84,8 @@
 }
 
 @media only screen and (max-width: 600px) {
-  #about-view {
+  #howitworks-view {
     .ather-card {
-      padding: 0.5rem 1rem;
       max-width: unset !important;
       width: 100%;
       .diagram {

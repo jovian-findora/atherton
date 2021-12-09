@@ -181,7 +181,7 @@ contract AthertonTreasury is Ownable {
             IERC20( ATHER ).transfer(stakingContracts[ i ], dividend );
             IStaking( stakingContracts[ i ] ).updateDistribute( dividend, true );
         }
-        // TODO: for bonds   
+        // TODO: for bonds
     }
 
     // Staking

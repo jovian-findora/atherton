@@ -1,14 +1,14 @@
 import { StaticJsonRpcProvider } from "@ethersproject/providers";
 import { NetworkID } from "src/lib/Bond";
-import { abi as BondCalcContractABI } from "src/abi/AthertonBondCalculator.json";
+import { abi as TokenEvalutorUniswapV2ABI } from "src/abi/TokenEvalutorUniswapV2.json";
 import { ethers } from "ethers";
 import { addresses } from "src/constants";
-import { AthertonBondCalculator } from "../typechain";
+import { TokenEvalutorUniswapV2 } from "../typechain";
 
 export const getBondCalculator = (networkID: NetworkID, provider: StaticJsonRpcProvider) => {
   return new ethers.Contract(
     addresses[networkID].ATHER_EVAL_ADDRESS as string,
-    BondCalcContractABI,
+    TokenEvalutorUniswapV2ABI,
     provider,
-  ) as AthertonBondCalculator;
+  ) as TokenEvalutorUniswapV2;
 };

@@ -6,16 +6,16 @@ import { SvgIcon } from "@material-ui/core";
 import { Trans } from "@lingui/macro";
 
 const externalUrls = [
-  {
-    title: <Trans>Forum</Trans>,
-    url: "https://forum.atherton.finance/",
-    icon: <SvgIcon color="primary" component={ForumIcon} />,
-  },
-  {
-    title: <Trans>Governance</Trans>,
-    url: "https://vote.atherton.finance/",
-    icon: <SvgIcon color="primary" component={GovIcon} />,
-  },
+  // {
+  //   title: <Trans>Forum</Trans>,
+  //   url: "https://forum.atherton.finance/",
+  //   icon: <SvgIcon color="primary" component={ForumIcon} />,
+  // },
+  // {
+  //   title: <Trans>Governance</Trans>,
+  //   url: "https://vote.atherton.finance/",
+  //   icon: <SvgIcon color="primary" component={GovIcon} />,
+  // },
   {
     title: <Trans>Docs</Trans>,
     url: "https://docs.atherton.finance/",

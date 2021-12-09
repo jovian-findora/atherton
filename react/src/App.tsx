@@ -17,7 +17,6 @@ import { loadAppDetails } from "./slices/AppSlice";
 import { loadAccountDetails, calculateUserBondDetails } from "./slices/AccountSlice";
 import { info } from "./slices/MessagesSlice";
 
-import { Stake, ChooseBond, Bond, TreasuryDashboard, About } from "./views";
 import Sidebar from "./components/Sidebar/Sidebar.jsx";
 import TopBar from "./components/TopBar/TopBar.jsx";
 import NavDrawer from "./components/Sidebar/NavDrawer.jsx";
@@ -28,6 +27,9 @@ import { dark as darkTheme } from "./themes/dark.js";
 import { light as lightTheme } from "./themes/light.js";
 import { girth as gTheme } from "./themes/girth.js";
 import "./style.scss";
+
+import { Stake, ChooseBond, Bond, TreasuryDashboard, About, HowItWorks } from "./views";
+
 import { Bond as IBond } from "./lib/Bond";
 import { useGoogleAnalytics } from "./hooks/useGoogleAnalytics";
 
@@ -215,16 +217,17 @@ function App() {
 
         <div className={`${classes.content} ${isSmallerScreen && classes.contentShift}`}>
           <Switch>
+
             <Route exact path="/about">
               <About />
             </Route>
 
-            <Route exact path="/dashboard">
-              <TreasuryDashboard />
+            <Route exact path="/get-started">
+              <HowItWorks />
             </Route>
 
-            <Route exact path="/">
-              <Redirect to="/stake" />
+            <Route exact path="/dashboard">
+              <TreasuryDashboard />
             </Route>
 
             <Route path="/stake">
@@ -240,6 +243,10 @@ function App() {
                 );
               })}
               <ChooseBond />
+            </Route>
+
+            <Route exact path="/">
+              <Redirect to="/about" />
             </Route>
 
             <Route component={NotFound} />
